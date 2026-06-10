@@ -588,7 +588,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Homepage search suggestions
 (function initHomeSearch() {
-  if (window.location.pathname.indexOf("index.html") < 0 && window.location.pathname !== "/" && window.location.pathname !== "") return;
+  var currentPage = window.location.pathname.split("/").pop() || "index.html";
+  if (currentPage !== "index.html") return;
   var tries = 0;
   var timer = setInterval(function() {
     tries++;
