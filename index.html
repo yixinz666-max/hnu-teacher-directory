@@ -1,0 +1,119 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>湖南大学土木工程学院教师信息库</title>
+  <meta name="description" content="湖南大学土木工程学院教师信息检索与展示平台，涵盖基础信息、教育背景、研究方向、科研项目、学术成果等公开信息。">
+  <link rel="stylesheet" href="css/main.css?v=1780998557657">
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand"><span class="icon icon-sm brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 21V9l8-6 8 6v12"/><path d="M9 15v4h6v-4"/><rect x="10" y="11" width="4" height="4" rx="0.5"/></svg></span> 湖南大学土木工程学院教师信息库</a>
+    <button class="navbar-toggle" aria-label="菜单"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="navbar-menu">
+      <a href="index.html">首页</a>
+      <a href="list.html">教师名录</a>
+      <a href="index.html#departments">系所分类</a>
+      <a href="index.html#research">研究方向</a>
+      <a href="list.html?sort=title">学术成果</a>
+      <a href="about.html">数据说明</a>
+    </div>
+  </div>
+</nav>
+
+<!-- 主内容 -->
+<div id="app">
+
+  <!-- 英雄区 -->
+  <section class="hero hero-illustrated">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <span class="hero-kicker">HNU Civil Engineering Faculty Directory</span>
+        <h1>湖南大学土木工程学院教师信息库</h1>
+        <p>面向教师检索、研究方向发现与学术信息浏览，整合学院公开教师资料，快速定位导师、团队与成果线索。</p>
+        <div class="search-box hero-search" style="position:relative;overflow:visible;">
+          <input type="text" id="home-search" placeholder="搜索教师姓名、研究方向、论文关键词、项目关键词...">
+          <div class="search-suggestions" id="home-suggestions"></div>
+          <button id="home-search-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg> 搜索</button>
+        </div>
+        <div class="hero-actions">
+          <a href="list.html" class="btn btn-primary">浏览教师名录</a>
+          <a href="#departments" class="btn btn-outline">按系所查看</a>
+        </div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <img src="assets/civil-hero.svg" alt="">
+      </div>
+    </div>
+  </section>
+
+  <!-- 数据概览 -->
+  <section class="section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="17" cy="7" r="3"/><path d="M15 15h1a4 4 0 014 4v2"/></svg></div>
+          <div class="stat-num" id="stat-teachers">0</div>
+          <div class="stat-label">教师总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 21h18"/><path d="M5 21V7l4-3 3 2 5-4v19"/></svg></div>
+          <div class="stat-num" id="stat-depts">0</div>
+          <div class="stat-label">系所数量</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-profs">0</div>
+          <div class="stat-label">教授人数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-assoc">0</div>
+          <div class="stat-label">副教授人数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-interests">0</div>
+          <div class="stat-label">研究方向</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-pubs">0</div>
+          <div class="stat-label">学术成果</div>
+        </div>
+      </div>
+
+  <!-- 系所分类 -->
+  <section class="section section-band" id="departments">
+    <div class="container">
+      <h2 style="text-align:center;margin-bottom:32px;color:var(--primary-dark);">系所与研究中心</h2>
+      <div class="dept-grid" id="dept-grid"></div>
+    </div>
+  </section>
+
+  <!-- 研究方向 -->
+  <section class="section">
+    <div class="container">
+      <h2 style="text-align:center;margin-bottom:32px;color:var(--primary-dark);">研究方向</h2>
+      <div class="research-tags-area" id="research-tags-area"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- 页脚 -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="index.html">首页</a>
+    <a href="list.html">教师名录</a>
+    <a href="about.html">数据说明</a>
+    <a href="https://ce.hnu.edu.cn" target="_blank" rel="noopener">土木院官网</a>
+    <a href="https://www.hnu.edu.cn" target="_blank" rel="noopener">湖南大学</a>
+  </div>
+  <p>© 2026 湖南大学土木工程学院教师信息库 · 数据来源：<a href="https://ce.hnu.edu.cn/szdw/jsmc.htm" target="_blank" rel="noopener">土木工程学院官网</a> · 仅供学术检索参考</p>
+</footer>
+
+<script src="data/teachers.js?v=1780998557657"></script>
+<script src="js/main.js?v=1780998557657"></script>
+</body>
+</html>

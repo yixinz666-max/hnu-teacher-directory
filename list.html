@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教师名录 - 湖南大学土木工程学院教师信息库</title>
+  <meta name="description" content="浏览湖南大学土木工程学院全部教师公开信息，支持按系所、职称筛选，支持姓名、方向、成果关键词检索。">
+  <link rel="stylesheet" href="css/main.css?v=1780998557657">
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand"><span class="icon icon-sm brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 21V9l8-6 8 6v12"/><path d="M9 15v4h6v-4"/><rect x="10" y="11" width="4" height="4" rx="0.5"/></svg></span> 湖南大学土木工程学院教师信息库</a>
+    <button class="navbar-toggle" aria-label="菜单"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="navbar-menu">
+      <a href="index.html">首页</a>
+      <a href="list.html">教师名录</a>
+      <a href="index.html#departments">系所分类</a>
+      <a href="index.html#research">研究方向</a>
+      <a href="list.html?sort=title">学术成果</a>
+      <a href="about.html">数据说明</a>
+    </div>
+  </div>
+</nav>
+
+<!-- 页面标题 -->
+<div class="page-title">
+  <h1><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-5px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> 教师名录</h1>
+  <p>浏览全部教师公开信息，按系所、职称、研究方向筛选</p>
+</div>
+
+<!-- 搜索 -->
+<div class="section search-section">
+  <div class="container">
+    <div class="search-box">
+      <input type="text" id="list-search" placeholder="搜索教师姓名、研究方向、论文关键词..." autocomplete="off">
+        <div class="search-suggestions" id="search-suggestions"></div>
+      <button><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<!-- 主体 -->
+<div class="container">
+  <div class="list-layout">
+    <!-- 移动端筛选按钮 -->
+    <button class="btn btn-outline filter-toggle-btn" id="filter-toggle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg> 筛选条件</button>
+
+    <!-- 左侧筛选栏（桌面端） -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px"><path d="M3 21h18"/><path d="M5 21V7l4-3 3 2 5-4v19"/></svg> 系所分类</h4>
+        <div id="filter-departments"></div>
+      </div>
+      <div class="sidebar-section">
+        <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 职称</h4>
+        <div id="filter-titles"></div>
+      </div>
+    </aside>
+
+    <!-- 右侧教师列表 -->
+    <div class="main-content">
+      <div class="result-header">
+        <div class="result-meta"><span class="result-count" id="result-count">加载中...</span><div class="active-filters" id="active-filters"></div></div>
+        <select class="sort-select" id="sort-select">
+          <option value="default">默认排序</option>
+          <option value="title">按职称排序</option>
+        </select>
+      </div>
+      <div class="teacher-grid" id="teacher-grid">
+        <div class="empty-state"><div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg></div><p>加载中...</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 移动端筛选抽屉 -->
+<div class="filter-drawer-overlay" id="filter-drawer-overlay"></div>
+<div class="filter-drawer" id="filter-drawer">
+  <div class="drawer-header">
+    <h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-4px"><path d="M4 6h16M7 12h10M10 18h4"/></svg> 筛选条件</h4>
+    <span class="drawer-close" id="drawer-close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+  </div>
+  <div class="sidebar-section">
+    <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px"><path d="M3 21h18"/><path d="M5 21V7l4-3 3 2 5-4v19"/></svg> 系所分类</h4>
+    <div id="mobile-filter-departments"></div>
+  </div>
+  <div class="sidebar-section">
+    <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> 职称</h4>
+    <div id="mobile-filter-titles"></div>
+  </div>
+</div>
+<!-- 页脚 -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="index.html">首页</a>
+    <a href="list.html">教师名录</a>
+    <a href="about.html">数据说明</a>
+    <a href="https://ce.hnu.edu.cn" target="_blank" rel="noopener">土木院官网</a>
+    <a href="https://www.hnu.edu.cn" target="_blank" rel="noopener">湖南大学</a>
+  </div>
+  <p>© 2026 湖南大学土木工程学院教师信息库 · 数据来源：<a href="https://ce.hnu.edu.cn/szdw/jsmc.htm" target="_blank" rel="noopener">土木工程学院官网</a> · 仅供学术检索参考</p>
+</footer>
+
+<script src="data/teachers.js?v=1780998557657"></script>
+<script src="js/main.js?v=1780998557657"></script>
+</body>
+</html>
