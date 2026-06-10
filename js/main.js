@@ -147,6 +147,45 @@ function searchTeachers(query) {
     return scored.filter(function(s) { return s.score > 0; }).sort(function(a,b) { return b.score - a.score; }).map(function(s) { return s.teacher; });
   }
 
+function attachHomeSuggestions(searchInput) {
+  if (!searchInput || searchInput.dataset.suggestionsReady === "1") return;
+  var box = document.getElementById("home-suggestions");
+  if (!box) return;
+  searchInput.dataset.suggestionsReady = "1";
+
+  searchInput.addEventListener("input", debounce(function() {
+    var q = searchInput.value.trim();
+    if (!q || q.length < 1) { box.classList.remove("show"); return; }
+    var matches = searchTeachersForSuggestions(q).slice(0, 8);
+    if (matches.length === 0) { box.classList.remove("show"); return; }
+    box.innerHTML = matches.map(function(t) {
+      var av = getTeacherAvatar(t, 32);
+      return '<div class="suggestion-item" data-id="' + escapeHTML(t.id) + '"><div class="sug-avatar">' + av + '</div><div class="sug-info"><div class="sug-name">' + escapeHTML(t.name) + '</div><div class="sug-detail">' + escapeHTML(t.title) + ' / ' + escapeHTML(t.department) + '</div></div></div>';
+    }).join("");
+    box.classList.add("show");
+    box.querySelectorAll(".suggestion-item").forEach(function(item) {
+      item.addEventListener("mousedown", function(e) {
+        e.preventDefault();
+        window.location.href = "detail.html?id=" + encodeURIComponent(this.getAttribute("data-id"));
+      });
+    });
+  }, 150));
+
+  searchInput.addEventListener("compositionend", function() {
+    searchInput.dispatchEvent(new Event("input"));
+  });
+
+  searchInput.addEventListener("blur", function() {
+    setTimeout(function() { box.classList.remove("show"); }, 200);
+  });
+
+  document.addEventListener("click", function(e) {
+    if (!searchInput.contains(e.target) && !box.contains(e.target)) {
+      box.classList.remove("show");
+    }
+  });
+}
+
 function filterTeachers(teachers) {
   let result = teachers;
   if (App.filters.departments.length > 0) result = result.filter(t => App.filters.departments.includes(t.department));
@@ -203,6 +242,7 @@ async function renderHome() {
   const doSearch = () => { const q = searchInput.value.trim(); window.location.href = q ? "list.html?search=" + encodeURIComponent(q) : "list.html"; };
   if (searchBtn) searchBtn.addEventListener("click", doSearch);
   if (searchInput) searchInput.addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
+  attachHomeSuggestions(searchInput);
 
   renderDeptCards();
   renderResearchTags();
@@ -596,47 +636,10 @@ document.addEventListener("DOMContentLoaded", () => {
     var input = document.getElementById("home-search");
     if (input && App.teachers && App.teachers.length > 0) {
       clearInterval(timer);
-      setupHomeSuggestions(input);
+      attachHomeSuggestions(input);
     }
     if (tries > 50) clearInterval(timer);
   }, 200);
-
-  function setupHomeSuggestions(searchInput) {
-    var box = document.getElementById("home-suggestions");
-    if (!box) return;
-
-    searchInput.addEventListener("input", debounce(function() {
-      var q = searchInput.value.trim();
-      if (!q || q.length < 1) { box.classList.remove("show"); return; }
-      var matches = searchTeachersForSuggestions(q).slice(0, 8);
-      if (matches.length === 0) { box.classList.remove("show"); return; }
-      box.innerHTML = matches.map(function(t) {
-        var av = getTeacherAvatar(t, 32);
-        return '<div class="suggestion-item" data-id="' + t.id + '"><div class="sug-avatar">' + av + '</div><div class="sug-info"><div class="sug-name">' + t.name + '</div><div class="sug-detail">' + t.title + ' / ' + t.department + '</div></div></div>';
-      }).join("");
-      box.classList.add("show");
-      box.querySelectorAll(".suggestion-item").forEach(function(item) {
-        item.addEventListener("mousedown", function(e) {
-          e.preventDefault();
-          window.location.href = "detail.html?id=" + encodeURIComponent(this.getAttribute("data-id"));
-        });
-      });
-    }, 150));
-
-    searchInput.addEventListener("compositionend", function() {
-      searchInput.dispatchEvent(new Event("input"));
-    });
-
-    searchInput.addEventListener("blur", function() {
-      setTimeout(function() { box.classList.remove("show"); }, 200);
-    });
-
-    document.addEventListener("click", function(e) {
-      if (!searchInput.contains(e.target) && !box.contains(e.target)) {
-        box.classList.remove("show");
-      }
-    });
-  }
 })();
 
 
