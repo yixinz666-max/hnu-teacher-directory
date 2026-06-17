@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>学者主页跳转 - 湖南大学土木工程学院教师信息库</title>
+  <title>学者资料跳转 - 湖南大学土木工程学院教师信息库</title>
   <link rel="stylesheet" href="css/main.css?v=2026061703">
 </head>
 <body>
@@ -23,7 +23,7 @@
 <main class="section">
   <div class="container">
     <div class="empty-state scholar-empty" id="scholar-status">
-      <p>正在查找学者主页...</p>
+      <p>正在查找站内学者资料...</p>
     </div>
   </div>
 </main>
@@ -48,8 +48,8 @@
   function showNoData(label) {
     var safeName = label || "该学者";
     status.innerHTML =
-      '<h2>暂无主页资料</h2>' +
-      '<p>' + safeName + ' 暂未收录可跳转的个人主页。</p>' +
+      '<h2>暂无资料</h2>' +
+      '<p>' + safeName + ' 暂未收录站内资料。</p>' +
       '<div class="empty-actions">' +
       '<a class="btn btn-primary" href="list.html?search=' + encodeURIComponent(safeName) + '">在教师名录中检索</a>' +
       '<a class="btn btn-outline" href="index.html#outstanding">返回杰出学者</a>' +
@@ -67,8 +67,8 @@
     return item && item.name === name;
   });
 
-  if (teacher && teacher.personal_page && /^https?:\/\//.test(teacher.personal_page)) {
-    window.location.replace(teacher.personal_page);
+  if (teacher && teacher.id) {
+    window.location.replace("detail.html?id=" + encodeURIComponent(teacher.id));
     return;
   }
 
