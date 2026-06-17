@@ -625,8 +625,9 @@ function drawCollabGraph(nodes, edges, centerName) {
   if (App.collabChart) App.collabChart.dispose();
   App.collabChart = echarts.init(el);
   var maxCount = Math.max.apply(null, edges.map(function(edge) { return edge.count; }));
-  var graphNodes = nodes.map(function(node) {
+  var graphNodes = nodes.map(function(node, index) {
     var isCenter = centerName && node.name === centerName;
+    var labelPositions = ["right", "left", "top", "bottom"];
     return {
       id: node.name,
       name: node.name,
@@ -644,20 +645,18 @@ function drawCollabGraph(nodes, edges, centerName) {
       label: {
         color: isCenter ? "#8b1a2b" : "#26475e",
         fontWeight: isCenter ? 900 : 600,
+        position: isCenter ? "top" : labelPositions[index % labelPositions.length],
+        distance: isCenter ? 10 : 7,
         backgroundColor: "rgba(255,255,255,0.76)",
         borderRadius: 4,
-        padding: [1, 5],
-        fontSize: high ? 11 : 9,
-        backgroundColor: "rgba(255,255,255,0.88)",
-        borderColor: high ? "rgba(139,26,43,0.22)" : "rgba(95,124,148,0.2)",
-        borderWidth: 1,
-        borderRadius: 8
+        padding: [2, 4]
       },
       raw: node
     };
   });
   var graphLinks = edges.map(function(edge) {
     var high = edge.count >= Math.max(2, Math.ceil(maxCount * 0.6));
+    var showCountLabel = high || edge.count >= Math.max(3, Math.ceil(maxCount * 0.42));
     return {
       source: edge.source,
       target: edge.target,
@@ -669,7 +668,7 @@ function drawCollabGraph(nodes, edges, centerName) {
         curveness: high ? 0.08 : 0.04
       },
       label: {
-        show: true,
+        show: showCountLabel,
         formatter: edge.count + "次",
         color: high ? "#8b1a2b" : "#5d7487",
         fontSize: high ? 12 : 10,
@@ -719,7 +718,7 @@ function drawCollabGraph(nodes, edges, centerName) {
       data: graphNodes,
       links: graphLinks,
       categories: [{ name: "中心教师" }, { name: "合作教师" }],
-      label: { show: true, position: "right", distance: 8, fontSize: 11 },
+      label: { show: true, fontSize: 11 },
       edgeLabel: { show: true },
       edgeSymbol: ["none", "none"],
       labelLayout: { hideOverlap: true },
@@ -741,12 +740,12 @@ function drawCollabGraph(nodes, edges, centerName) {
 
 function renderDefaultCollabGraph() {
   var data = buildCollaborationData();
-  var edges = data.edges.filter(function(edge) { return edge.count >= 2; }).slice(0, 20);
-  if (edges.length < 5) edges = data.edges.slice(0, 20);
+  var edges = data.edges.filter(function(edge) { return edge.count >= 2; }).slice(0, 12);
+  if (edges.length < 5) edges = data.edges.slice(0, 12);
   var names = new Set();
   edges.forEach(function(edge) { names.add(edge.source); names.add(edge.target); });
   var nodes = Array.from(names).map(function(name) { return data.nodeMap.get(name); }).filter(Boolean);
-  setCollabGraphHeader("高频合作关系", "默认展示合作次数靠前的关系，可搜索教师查看个人合作网络");
+  setCollabGraphHeader("高频合作关系", "默认展示合作次数最高的核心关系，可搜索教师查看个人合作网络");
   drawCollabGraph(nodes, edges, "");
 }
 
