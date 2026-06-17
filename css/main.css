@@ -1731,6 +1731,17 @@ body {
   color: #fff;
 }
 
+.external-paper-link {
+  background: #eef4ff;
+  color: #1d5d8f;
+  border-color: rgba(29, 93, 143, 0.2);
+}
+
+.external-paper-link:hover {
+  background: #1d5d8f;
+  color: #fff;
+}
+
 .pair-paper-meta {
   display: flex;
   flex-wrap: wrap;

@@ -525,6 +525,33 @@ function getRecentPaperTitle(edge) {
   return paper && paper.title ? paper.title : "";
 }
 
+function extractPaperDOI(paper) {
+  var text = String((paper && (paper.raw || paper.title)) || "");
+  var match = text.match(/\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i);
+  return match ? match[0].replace(/[),.;\]]+$/, "") : "";
+}
+
+function isEnglishPaper(paper) {
+  var title = String((paper && paper.title) || "");
+  var venue = String((paper && paper.venue) || "");
+  var ascii = title.replace(/[^\x00-\x7F]/g, "").length;
+  return /[A-Za-z]{4,}/.test(title + " " + venue) && (!title || ascii / Math.max(title.length, 1) > 0.65);
+}
+
+function renderPaperSearchLinks(paper) {
+  if (!paper || !paper.title) return "";
+  var links = [
+    '<a class="cnki-link" href="https://kns.cnki.net/kns8s/defaultresult/index?kw=' + encodeURIComponent(paper.title) + '" target="_blank" rel="noopener">知网检索</a>'
+  ];
+  var doi = extractPaperDOI(paper);
+  if (doi) {
+    links.push('<a class="cnki-link external-paper-link" href="https://doi.org/' + encodeURIComponent(doi).replace(/%2F/g, "/") + '" target="_blank" rel="noopener">DOI</a>');
+  } else if (isEnglishPaper(paper)) {
+    links.push('<a class="cnki-link external-paper-link" href="https://www.semanticscholar.org/search?q=' + encodeURIComponent(paper.title) + '" target="_blank" rel="noopener">外文检索</a>');
+  }
+  return " " + links.join(" ");
+}
+
 function renderCollabPaperList(papers, heading) {
   var box = document.getElementById("collab-paper-list");
   if (!box) return;
@@ -537,11 +564,10 @@ function renderCollabPaperList(papers, heading) {
     '<div class="collab-block"><h3>' + escapeHTML(heading || "合作论文") + '</h3>' +
     '<div class="collab-paper-items">' + clean.slice(0, 12).map(function(paper) {
       var meta = [];
-      var cnkiUrl = paper.title ? "https://kns.cnki.net/kns8s/defaultresult/index?kw=" + encodeURIComponent(paper.title) : "";
       if (paper.year) meta.push('<span>' + escapeHTML(paper.year) + '</span>');
       if (paper.venue) meta.push('<span>' + escapeHTML(paper.venue) + '</span>');
       return '<article class="collab-paper">' +
-        '<h4>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + (cnkiUrl ? ' <a class="cnki-link" href="' + cnkiUrl + '" target="_blank" rel="noopener">知网检索</a>' : '') + '</h4>' +
+        '<h4>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + renderPaperSearchLinks(paper) + '</h4>' +
         (meta.length ? '<div class="collab-paper-meta">' + meta.join("") + '</div>' : '') +
         (paper.authors ? '<div class="collab-paper-authors">作者：' + escapeHTML(paper.authors) + '</div>' : '') +
         '</article>';
@@ -1381,9 +1407,8 @@ function renderCollaborationPaperCard(paper) {
   var meta = [];
   if (paper.year) meta.push('<span>' + escapeHTML(paper.year) + '</span>');
   if (paper.venue) meta.push('<span>' + escapeHTML(paper.venue) + '</span>');
-  var cnkiUrl = paper.title ? "https://kns.cnki.net/kns8s/defaultresult/index?kw=" + encodeURIComponent(paper.title) : "";
   return '<article class="pair-paper-card">' +
-    '<h3>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + (cnkiUrl ? ' <a class="cnki-link" href="' + cnkiUrl + '" target="_blank" rel="noopener">知网检索</a>' : '') + '</h3>' +
+    '<h3>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + renderPaperSearchLinks(paper) + '</h3>' +
     (meta.length ? '<div class="pair-paper-meta">' + meta.join("") + '</div>' : '') +
     (paper.authors ? '<p class="pair-paper-authors">作者：' + escapeHTML(paper.authors) + '</p>' : '') +
     '</article>';
