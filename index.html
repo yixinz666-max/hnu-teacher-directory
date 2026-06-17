@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>湖南大学土木工程学院教师信息库</title>
   <meta name="description" content="湖南大学土木工程学院教师信息检索与展示平台，涵盖基础信息、教育背景、研究方向、科研项目、学术成果等公开信息。">
-  <link rel="stylesheet" href="css/main.css?v=2026061703">
+  <link rel="stylesheet" href="css/main.css?v=2026061704">
 </head>
 <body>
 
@@ -17,6 +17,7 @@
     <div class="navbar-menu">
       <a href="index.html">首页</a>
       <a href="list.html">教师名录</a>
+      <a href="index.html#collaboration">学术合作</a>
       <a href="index.html#outstanding">杰出学者</a>
       <a href="index.html#departments">系所分类</a>
       <a href="index.html#research">研究方向</a>
@@ -83,6 +84,40 @@
           <div class="stat-label">学术成果</div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- 学术合作网络 -->
+  <section class="section collaboration-section" id="collaboration">
+    <div class="container">
+      <div class="section-heading">
+        <span class="section-kicker">ACADEMIC COLLABORATION NETWORK</span>
+        <h2>学术合作网络</h2>
+        <p class="section-desc">基于教师论文共同署名关系，展示学院教师之间的学术合作次数与合作论文。</p>
+      </div>
+      <div class="collab-layout">
+        <aside class="collab-panel">
+          <div class="collab-search">
+            <input type="text" id="collab-search" autocomplete="off" placeholder="搜索教师姓名，查看个人合作网络">
+            <div class="collab-suggestions" id="collab-suggestions"></div>
+          </div>
+          <div id="collab-info"></div>
+          <div id="collab-paper-list" class="collab-paper-list"></div>
+        </aside>
+        <div class="collab-graph-card">
+          <div class="collab-graph-toolbar">
+            <div>
+              <strong id="collab-graph-title">高频合作关系</strong>
+              <span id="collab-graph-subtitle">默认展示高频合作关系</span>
+            </div>
+            <button type="button" class="collab-reset-btn" id="collab-reset">学院概览</button>
+          </div>
+          <div id="collab-graph" class="collab-graph"></div>
+          <div id="collab-empty" class="collab-empty" hidden>暂无可展示的合作关系。</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- 杰出学者 -->
   <section class="section outstanding-section" id="outstanding">
@@ -219,6 +254,7 @@
   <div class="footer-links">
     <a href="index.html">首页</a>
     <a href="list.html">教师名录</a>
+    <a href="index.html#collaboration">学术合作</a>
     <a href="index.html#outstanding">杰出学者</a>
     <a href="about.html">数据说明</a>
     <a href="https://ce.hnu.edu.cn" target="_blank" rel="noopener">土木院官网</a>
@@ -227,7 +263,8 @@
   <p>© 2026 湖南大学土木工程学院教师信息库 · 数据来源：<a href="https://ce.hnu.edu.cn/szdw/jsmc.htm" target="_blank" rel="noopener">土木工程学院官网</a> · 仅供学术检索参考</p>
 </footer>
 
-<script src="data/teachers.js?v=2026061703"></script>
-<script src="js/main.js?v=2026061703"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="data/teachers.js?v=2026061704"></script>
+<script src="js/main.js?v=2026061704"></script>
 </body>
 </html>

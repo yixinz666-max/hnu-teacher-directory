@@ -246,6 +246,7 @@ async function renderHome() {
 
   renderDeptCards();
   renderResearchTags();
+  renderCollaborationNetwork();
 }
 
 function renderDeptCards() {
@@ -273,6 +274,428 @@ function renderResearchTags() {
 }
 
 // ===== 教师列表页 =====
+function normalizeCollabText(value) {
+  return String(value || "").replace(/[\s\u00a0\u3000]/g, "").toLowerCase();
+}
+
+function getCollabPairKey(a, b) {
+  return [a, b].sort().join("::");
+}
+
+function parseCollabPaper(raw) {
+  var text = String(raw || "").replace(/\s+/g, " ").trim();
+  var yearMatches = text.match(/(?:19|20)\d{2}/g) || [];
+  var parts = text.split(/[，,；;。]/).map(function(part) { return part.trim(); }).filter(Boolean);
+  var year = yearMatches.length ? yearMatches[yearMatches.length - 1] : "";
+  var title = "";
+  var venue = "";
+  var authors = parts.length ? parts[0] : "";
+  for (var i = 1; i < parts.length; i++) {
+    var part = parts[i];
+    if (!title && part.length >= 8 && !/(?:19|20)\d{2}/.test(part)) {
+      title = part;
+      continue;
+    }
+    if (title && !venue && part.length >= 2 && !/^\d+(\.\d+)?$/.test(part)) {
+      venue = part.replace(/(?:19|20)\d{2}.*/, "").trim();
+      if (venue) break;
+    }
+  }
+  if (!title && parts.length > 1) title = parts[1];
+  if (!title) title = text.length > 90 ? text.slice(0, 90) + "..." : text;
+  return { raw: text, title: title, year: year, venue: venue, authors: authors };
+}
+
+function getTeacherPaperCount(t) {
+  return (t.publications || []).filter(function(item) {
+    var text = String(item || "").trim();
+    return text.length > 12 && /(?:19|20)\d{2}|[,，]/.test(text);
+  }).length;
+}
+
+function buildCollaborationData() {
+  if (App.collaboration) return App.collaboration;
+  var teacherByName = new Map();
+  var normalizedTeachers = [];
+  App.teachers.forEach(function(t) {
+    if (!t || !t.name) return;
+    teacherByName.set(t.name, t);
+    normalizedTeachers.push({ name: t.name, normalized: normalizeCollabText(t.name), teacher: t });
+  });
+  var nodeMap = new Map();
+  var edgeMap = new Map();
+  App.teachers.forEach(function(t) {
+    nodeMap.set(t.name, {
+      id: t.name,
+      name: t.name,
+      teacherId: t.id,
+      department: t.department || "",
+      title: t.title || "",
+      researchFields: t.research_interests || [],
+      paperCount: getTeacherPaperCount(t),
+      cooperationCount: 0,
+      collaboratorCount: 0
+    });
+  });
+  App.teachers.forEach(function(owner) {
+    (owner.publications || []).forEach(function(raw) {
+      var text = String(raw || "").trim();
+      if (text.length < 12) return;
+      var normalizedPaper = normalizeCollabText(text);
+      var matched = normalizedTeachers.filter(function(item) {
+        return item.normalized.length >= 2 && normalizedPaper.indexOf(item.normalized) >= 0;
+      }).map(function(item) { return item.name; });
+      matched = Array.from(new Set(matched));
+      if (matched.length < 2) return;
+      var paper = parseCollabPaper(text);
+      var paperKey = normalizeCollabText(paper.title || text).slice(0, 160);
+      for (var i = 0; i < matched.length; i++) {
+        for (var j = i + 1; j < matched.length; j++) {
+          var source = matched[i];
+          var target = matched[j];
+          var key = getCollabPairKey(source, target);
+          if (!edgeMap.has(key)) {
+            edgeMap.set(key, { source: source, target: target, count: 0, papers: [], paperKeys: new Set() });
+          }
+          var edge = edgeMap.get(key);
+          if (edge.paperKeys.has(paperKey)) continue;
+          edge.paperKeys.add(paperKey);
+          edge.count += 1;
+          edge.papers.push(paper);
+        }
+      }
+    });
+  });
+  var collaboratorSets = new Map();
+  nodeMap.forEach(function(node) { collaboratorSets.set(node.name, new Set()); });
+  var edges = Array.from(edgeMap.values()).map(function(edge) {
+    delete edge.paperKeys;
+    edge.papers.sort(function(a, b) { return Number(b.year || 0) - Number(a.year || 0); });
+    var sourceNode = nodeMap.get(edge.source);
+    var targetNode = nodeMap.get(edge.target);
+    if (sourceNode) sourceNode.cooperationCount += edge.count;
+    if (targetNode) targetNode.cooperationCount += edge.count;
+    if (collaboratorSets.has(edge.source)) collaboratorSets.get(edge.source).add(edge.target);
+    if (collaboratorSets.has(edge.target)) collaboratorSets.get(edge.target).add(edge.source);
+    return edge;
+  }).sort(function(a, b) { return b.count - a.count; });
+  collaboratorSets.forEach(function(set, name) {
+    var node = nodeMap.get(name);
+    if (node) node.collaboratorCount = set.size;
+  });
+  App.collaboration = {
+    nodes: Array.from(nodeMap.values()),
+    edges: edges,
+    nodeMap: nodeMap,
+    edgeMap: new Map(edges.map(function(edge) { return [getCollabPairKey(edge.source, edge.target), edge]; })),
+    teacherByName: teacherByName
+  };
+  return App.collaboration;
+}
+
+function getRecentPaperTitle(edge) {
+  var paper = edge && edge.papers && edge.papers[0];
+  return paper && paper.title ? paper.title : "";
+}
+
+function renderCollabPaperList(papers, heading) {
+  var box = document.getElementById("collab-paper-list");
+  if (!box) return;
+  var clean = (papers || []).filter(Boolean);
+  if (!clean.length) {
+    box.innerHTML = "";
+    return;
+  }
+  box.innerHTML =
+    '<div class="collab-block"><h3>' + escapeHTML(heading || "合作论文") + '</h3>' +
+    '<div class="collab-paper-items">' + clean.slice(0, 12).map(function(paper) {
+      var meta = [];
+      if (paper.year) meta.push('<span>' + escapeHTML(paper.year) + '</span>');
+      if (paper.venue) meta.push('<span>' + escapeHTML(paper.venue) + '</span>');
+      return '<article class="collab-paper">' +
+        '<h4>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + '</h4>' +
+        (meta.length ? '<div class="collab-paper-meta">' + meta.join("") + '</div>' : '') +
+        (paper.authors ? '<div class="collab-paper-authors">作者：' + escapeHTML(paper.authors) + '</div>' : '') +
+        '</article>';
+    }).join("") + '</div></div>';
+}
+
+function getTeacherCollabEdges(name) {
+  var data = buildCollaborationData();
+  return data.edges.filter(function(edge) { return edge.source === name || edge.target === name; })
+    .sort(function(a, b) { return b.count - a.count; });
+}
+
+function renderCollabOverview() {
+  var data = buildCollaborationData();
+  var info = document.getElementById("collab-info");
+  if (!info) return;
+  var activeTeacherCount = data.nodes.filter(function(node) { return node.collaboratorCount > 0; }).length;
+  var totalCount = data.edges.reduce(function(sum, edge) { return sum + edge.count; }, 0);
+  var highFreqCount = data.edges.filter(function(edge) { return edge.count >= 2; }).length;
+  var topEdges = data.edges.slice(0, 5);
+  info.innerHTML =
+    '<div class="collab-metrics">' +
+    '<div class="collab-metric"><strong>' + activeTeacherCount + '</strong><span>参与论文合作的教师数量</span></div>' +
+    '<div class="collab-metric"><strong>' + data.edges.length + '</strong><span>教师合作关系总数</span></div>' +
+    '<div class="collab-metric"><strong>' + totalCount + '</strong><span>论文合作总次数</span></div>' +
+    '<div class="collab-metric"><strong>' + highFreqCount + '</strong><span>高频合作组合数量</span></div>' +
+    '</div>' +
+    '<div class="collab-block"><h3>高频合作 Top 5</h3><div class="collab-pair-list">' +
+    topEdges.map(function(edge) {
+      return '<article class="collab-pair" data-source="' + escapeHTML(edge.source) + '" data-target="' + escapeHTML(edge.target) + '">' +
+        '<div class="collab-pair-title"><span>' + escapeHTML(edge.source) + ' - ' + escapeHTML(edge.target) + '</span><span class="collab-count-badge">合作 ' + edge.count + ' 次</span></div>' +
+        (getRecentPaperTitle(edge) ? '<div class="collab-paper-title">' + escapeHTML(getRecentPaperTitle(edge)) + '</div>' : '') +
+        '</article>';
+    }).join("") + '</div></div>';
+  info.querySelectorAll(".collab-pair").forEach(function(item) {
+    item.addEventListener("click", function() {
+      var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
+      if (edge) renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+    });
+  });
+  renderCollabPaperList([], "");
+}
+
+function renderTeacherCollabInfo(name) {
+  var data = buildCollaborationData();
+  var info = document.getElementById("collab-info");
+  if (!info) return;
+  var node = data.nodeMap.get(name);
+  var teacher = data.teacherByName.get(name);
+  if (!node || !teacher) return;
+  var edges = getTeacherCollabEdges(name);
+  var total = edges.reduce(function(sum, edge) { return sum + edge.count; }, 0);
+  var top = edges.slice(0, 5);
+  var personalPapers = (teacher.publications || []).map(parseCollabPaper).filter(function(paper) {
+    return paper && (paper.title || paper.raw);
+  }).slice(0, 8);
+  info.innerHTML =
+    '<div class="collab-teacher-head"><h3>' + escapeHTML(name) + '</h3>' +
+    '<p>' + escapeHTML(node.title || "职称暂缺") + ' / ' + escapeHTML(node.department || "系所暂缺") + '</p>' +
+    (node.researchFields.length ? '<div class="collab-tags">' + node.researchFields.slice(0, 4).map(function(tag) { return '<span class="collab-tag">' + escapeHTML(tag) + '</span>'; }).join("") + '</div>' : '') +
+    '</div>' +
+    '<div class="collab-metrics" style="margin-top:14px;">' +
+    '<div class="collab-metric"><strong>' + node.paperCount + '</strong><span>论文总数</span></div>' +
+    '<div class="collab-metric"><strong>' + node.collaboratorCount + '</strong><span>合作教师数量</span></div>' +
+    '<div class="collab-metric"><strong>' + total + '</strong><span>学术合作总次数</span></div>' +
+    '<div class="collab-metric"><strong>' + top.length + '</strong><span>高频合作教师</span></div>' +
+    '</div>' +
+    (edges.length ?
+      '<div class="collab-block"><h3>合作最频繁教师 Top 5</h3><div class="collab-person-list">' +
+      top.map(function(edge) {
+        var other = edge.source === name ? edge.target : edge.source;
+        return '<article class="collab-person" data-source="' + escapeHTML(edge.source) + '" data-target="' + escapeHTML(edge.target) + '">' +
+          '<div class="collab-person-title"><span>' + escapeHTML(other) + '</span><span class="collab-count-badge">' + edge.count + ' 次</span></div>' +
+          (getRecentPaperTitle(edge) ? '<div class="collab-paper-title">' + escapeHTML(getRecentPaperTitle(edge)) + '</div>' : '') +
+          '</article>';
+      }).join("") + '</div></div>' :
+      '<div class="collab-empty-state">暂未发现该教师与本学院其他教师的论文合作记录。</div>');
+  info.querySelectorAll(".collab-person").forEach(function(item) {
+    item.addEventListener("click", function() {
+      var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
+      if (edge) renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+    });
+  });
+  if (!edges.length) renderCollabPaperList(personalPapers, name + " 个人论文");
+  else renderCollabPaperList(edges[0].papers, edges[0].source + " - " + edges[0].target + " 合作论文");
+}
+
+function setCollabGraphHeader(title, subtitle) {
+  var titleEl = document.getElementById("collab-graph-title");
+  var subEl = document.getElementById("collab-graph-subtitle");
+  if (titleEl) titleEl.textContent = title;
+  if (subEl) subEl.textContent = subtitle || "";
+}
+
+function drawCollabGraph(nodes, edges, centerName) {
+  var el = document.getElementById("collab-graph");
+  var empty = document.getElementById("collab-empty");
+  if (!el) return;
+  if (!window.echarts) {
+    el.innerHTML = '<div class="collab-fallback">关系图组件正在加载或被浏览器拦截。左侧列表仍可查看合作次数与合作论文。</div>';
+    return;
+  }
+  if (empty) empty.hidden = edges.length > 0;
+  if (!edges.length) {
+    el.innerHTML = "";
+    return;
+  }
+  if (App.collabChart) App.collabChart.dispose();
+  App.collabChart = echarts.init(el);
+  var maxCount = Math.max.apply(null, edges.map(function(edge) { return edge.count; }));
+  var graphNodes = nodes.map(function(node) {
+    var isCenter = centerName && node.name === centerName;
+    return {
+      id: node.name,
+      name: node.name,
+      value: node.cooperationCount || node.paperCount || 1,
+      symbolSize: isCenter ? 64 : Math.max(34, Math.min(56, 30 + (node.cooperationCount || 1) * 3)),
+      category: isCenter ? 0 : 1,
+      draggable: true,
+      itemStyle: { color: isCenter ? "#0b2b4a" : "#7fb0d6" },
+      label: { color: isCenter ? "#0b2b4a" : "#26475e", fontWeight: isCenter ? 800 : 600 },
+      raw: node
+    };
+  });
+  var graphLinks = edges.map(function(edge) {
+    var high = edge.count >= Math.max(2, Math.ceil(maxCount * 0.6));
+    return {
+      source: edge.source,
+      target: edge.target,
+      value: edge.count,
+      lineStyle: {
+        width: Math.max(1.5, Math.min(9, 1.2 + edge.count * 1.2)),
+        color: high ? "#123b61" : "#b7c9d8",
+        opacity: high ? 0.88 : 0.58
+      },
+      raw: edge
+    };
+  });
+  App.collabChart.setOption({
+    animationDuration: 450,
+    color: ["#0b2b4a", "#7fb0d6"],
+    tooltip: {
+      trigger: "item",
+      confine: true,
+      formatter: function(params) {
+        if (params.dataType === "node") {
+          var node = params.data.raw || {};
+          var withCurrent = "";
+          if (centerName && centerName !== node.name) {
+            var edge = buildCollaborationData().edgeMap.get(getCollabPairKey(centerName, node.name));
+            if (edge) withCurrent = "<br>与当前教师合作次数：" + edge.count;
+          }
+          return "<strong>" + escapeHTML(node.name) + "</strong><br>" +
+            escapeHTML(node.department || "系所暂缺") + "<br>" +
+            escapeHTML(node.title || "职称暂缺") + "<br>" +
+            "研究方向：" + escapeHTML((node.researchFields || []).slice(0, 3).join("、") || "暂无") + "<br>" +
+            "论文数量：" + (node.paperCount || 0) + withCurrent;
+        }
+        var edgeData = params.data.raw || {};
+        return "<strong>" + escapeHTML(edgeData.source) + " - " + escapeHTML(edgeData.target) + "</strong><br>" +
+          "合作次数：" + (edgeData.count || 0) + "<br>" +
+          "最近论文：" + escapeHTML(getRecentPaperTitle(edgeData) || "暂无题名");
+      }
+    },
+    series: [{
+      type: "graph",
+      layout: "force",
+      roam: true,
+      draggable: true,
+      data: graphNodes,
+      links: graphLinks,
+      categories: [{ name: "中心教师" }, { name: "合作教师" }],
+      label: { show: true, position: "right", fontSize: 12 },
+      edgeSymbol: ["none", "none"],
+      force: { repulsion: centerName ? 360 : 220, edgeLength: centerName ? [90, 150] : [70, 140], gravity: 0.08 },
+      emphasis: { focus: "adjacency", lineStyle: { opacity: 1 } }
+    }]
+  });
+  App.collabChart.on("click", function(params) {
+    if (params.dataType === "node" && params.data && params.data.name) showTeacherCollaboration(params.data.name);
+    if (params.dataType === "edge" && params.data && params.data.raw) {
+      var edge = params.data.raw;
+      renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+    }
+  });
+  window.removeEventListener("resize", App._collabResizeHandler || function() {});
+  App._collabResizeHandler = function() { if (App.collabChart) App.collabChart.resize(); };
+  window.addEventListener("resize", App._collabResizeHandler);
+}
+
+function renderDefaultCollabGraph() {
+  var data = buildCollaborationData();
+  var edges = data.edges.filter(function(edge) { return edge.count >= 2; }).slice(0, 20);
+  if (edges.length < 5) edges = data.edges.slice(0, 20);
+  var names = new Set();
+  edges.forEach(function(edge) { names.add(edge.source); names.add(edge.target); });
+  var nodes = Array.from(names).map(function(name) { return data.nodeMap.get(name); }).filter(Boolean);
+  setCollabGraphHeader("高频合作关系", "默认展示合作次数靠前的关系，可搜索教师查看个人合作网络");
+  drawCollabGraph(nodes, edges, "");
+}
+
+function showTeacherCollaboration(name) {
+  var data = buildCollaborationData();
+  var node = data.nodeMap.get(name);
+  if (!node) return;
+  var input = document.getElementById("collab-search");
+  if (input) input.value = name;
+  var edges = getTeacherCollabEdges(name);
+  var names = new Set([name]);
+  edges.forEach(function(edge) { names.add(edge.source); names.add(edge.target); });
+  var nodes = Array.from(names).map(function(item) { return data.nodeMap.get(item); }).filter(Boolean);
+  setCollabGraphHeader(name + " 的个人合作网络", edges.length ? "点击节点可切换中心教师，点击连线查看合作论文" : "暂无本院共同署名合作关系");
+  renderTeacherCollabInfo(name);
+  drawCollabGraph(nodes, edges, name);
+}
+
+function attachCollabSearch() {
+  var input = document.getElementById("collab-search");
+  var box = document.getElementById("collab-suggestions");
+  if (!input || !box || input.dataset.ready === "1") return;
+  input.dataset.ready = "1";
+  var data = buildCollaborationData();
+  function renderSuggestions() {
+    var q = input.value.trim();
+    if (!q) { box.classList.remove("show"); return; }
+    var normalized = normalizeCollabText(q);
+    var matches = data.nodes.filter(function(node) {
+      return normalizeCollabText(node.name).indexOf(normalized) >= 0;
+    }).sort(function(a, b) {
+      return (b.collaboratorCount - a.collaboratorCount) || (b.paperCount - a.paperCount);
+    }).slice(0, 8);
+    if (!matches.length) { box.classList.remove("show"); return; }
+    box.innerHTML = matches.map(function(node) {
+      return '<button type="button" class="collab-suggestion" data-name="' + escapeHTML(node.name) + '">' +
+        '<span>' + escapeHTML(node.name) + '</span><small>' + escapeHTML(node.department || "") + '</small></button>';
+    }).join("");
+    box.classList.add("show");
+    box.querySelectorAll(".collab-suggestion").forEach(function(btn) {
+      btn.addEventListener("mousedown", function(e) {
+        e.preventDefault();
+        box.classList.remove("show");
+        showTeacherCollaboration(this.dataset.name);
+      });
+    });
+  }
+  input.addEventListener("input", debounce(renderSuggestions, 120));
+  input.addEventListener("compositionend", renderSuggestions);
+  input.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      var q = input.value.trim();
+      var match = data.nodes.find(function(node) { return node.name === q; }) ||
+        data.nodes.find(function(node) { return normalizeCollabText(node.name).indexOf(normalizeCollabText(q)) >= 0; });
+      if (match) {
+        box.classList.remove("show");
+        showTeacherCollaboration(match.name);
+      }
+    }
+    if (e.key === "Escape") box.classList.remove("show");
+  });
+  input.addEventListener("blur", function() {
+    setTimeout(function() { box.classList.remove("show"); }, 180);
+  });
+}
+
+function renderCollaborationNetwork() {
+  if (!document.getElementById("collaboration")) return;
+  buildCollaborationData();
+  renderCollabOverview();
+  renderDefaultCollabGraph();
+  attachCollabSearch();
+  var reset = document.getElementById("collab-reset");
+  if (reset && reset.dataset.ready !== "1") {
+    reset.dataset.ready = "1";
+    reset.addEventListener("click", function() {
+      var input = document.getElementById("collab-search");
+      if (input) input.value = "";
+      renderCollabOverview();
+      renderDefaultCollabGraph();
+    });
+  }
+}
+
 async function renderListPage() {
   await loadData();
   if (!App.data) return;
