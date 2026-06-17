@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>湖南大学土木工程学院教师信息库</title>
   <meta name="description" content="湖南大学土木工程学院教师信息检索与展示平台，涵盖基础信息、教育背景、研究方向、科研项目、学术成果等公开信息。">
-  <link rel="stylesheet" href="css/main.css?v=2026061001">
+  <link rel="stylesheet" href="css/main.css?v=2026061701">
 </head>
 <body>
 
@@ -17,6 +17,7 @@
     <div class="navbar-menu">
       <a href="index.html">首页</a>
       <a href="list.html">教师名录</a>
+      <a href="index.html#outstanding">杰出学者</a>
       <a href="index.html#departments">系所分类</a>
       <a href="index.html#research">研究方向</a>
       <a href="list.html?sort=title">学术成果</a>
@@ -83,10 +84,45 @@
         </div>
       </div>
 
+  <!-- 杰出学者 -->
+  <section class="section outstanding-section" id="outstanding">
+    <div class="container">
+      <div class="section-heading">
+        <span class="section-kicker">Distinguished Scholars</span>
+        <h2>杰出学者</h2>
+      </div>
+      <div class="scholar-grid">
+        <a class="scholar-card" href="list.html?search=%E4%B8%AD%E5%9B%BD%E5%B7%A5%E7%A8%8B%E9%99%A2%E9%99%A2%E5%A3%AB">
+          <span class="scholar-mark">01</span>
+          <h3>中国工程院院士</h3>
+          <p>聚焦学院院士与学科领军专家信息。</p>
+        </a>
+        <a class="scholar-card" href="list.html?search=%E5%9B%BD%E5%AE%B6%E7%BA%A7%E9%A2%86%E5%86%9B%E4%BA%BA%E6%89%8D">
+          <span class="scholar-mark">02</span>
+          <h3>国家级领军人才学者</h3>
+          <p>快速检索国家级高层次人才相关教师。</p>
+        </a>
+        <a class="scholar-card" href="list.html?search=%E5%9B%BD%E5%AE%B6%E7%BA%A7%E9%9D%92%E5%B9%B4%E4%BA%BA%E6%89%8D">
+          <span class="scholar-mark">03</span>
+          <h3>国家级青年人才</h3>
+          <p>查看青年人才、优秀青年基金等相关信息。</p>
+        </a>
+        <a class="scholar-card" href="list.html?search=%E5%B2%B3%E9%BA%93%E5%AD%A6%E8%80%85">
+          <span class="scholar-mark">04</span>
+          <h3>岳麓学者</h3>
+          <p>汇总校内高层次人才与青年学者线索。</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- 系所分类 -->
   <section class="section section-band" id="departments">
     <div class="container">
-      <h2 style="text-align:center;margin-bottom:32px;color:var(--primary-dark);">系所与研究中心</h2>
+      <div class="section-heading">
+        <span class="section-kicker">Departments & Research Centers</span>
+        <h2>系所与研究中心</h2>
+      </div>
       <div class="dept-grid" id="dept-grid"></div>
     </div>
   </section>
@@ -106,6 +142,7 @@
   <div class="footer-links">
     <a href="index.html">首页</a>
     <a href="list.html">教师名录</a>
+    <a href="index.html#outstanding">杰出学者</a>
     <a href="about.html">数据说明</a>
     <a href="https://ce.hnu.edu.cn" target="_blank" rel="noopener">土木院官网</a>
     <a href="https://www.hnu.edu.cn" target="_blank" rel="noopener">湖南大学</a>
@@ -113,7 +150,7 @@
   <p>© 2026 湖南大学土木工程学院教师信息库 · 数据来源：<a href="https://ce.hnu.edu.cn/szdw/jsmc.htm" target="_blank" rel="noopener">土木工程学院官网</a> · 仅供学术检索参考</p>
 </footer>
 
-<script src="data/teachers.js?v=2026061001"></script>
-<script src="js/main.js?v=2026061001"></script>
+<script src="data/teachers.js?v=2026061701"></script>
+<script src="js/main.js?v=2026061701"></script>
 </body>
 </html>
