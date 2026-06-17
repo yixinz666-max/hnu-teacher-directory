@@ -1265,7 +1265,7 @@ body {
 
 .collab-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 35%) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 22px;
   align-items: stretch;
 }
@@ -1279,6 +1279,7 @@ body {
 }
 
 .collab-panel {
+  order: 2;
   padding: 18px;
   min-width: 0;
 }
@@ -1622,6 +1623,7 @@ body {
 }
 
 .collab-graph-card {
+  order: 1;
   min-width: 0;
   overflow: hidden;
   position: relative;
@@ -1884,10 +1886,10 @@ body {
     grid-template-columns: 1fr;
   }
   .collab-graph-card {
-    order: 2;
+    order: 1;
   }
   .collab-panel {
-    order: 1;
+    order: 2;
   }
   .collab-paper-list {
     order: 3;
