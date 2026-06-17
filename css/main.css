@@ -1512,12 +1512,7 @@ body {
   min-width: 0;
   overflow: hidden;
   position: relative;
-  background:
-    linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
-    radial-gradient(circle at 18px 18px, rgba(18,59,97,0.10) 1px, transparent 1.5px),
-    linear-gradient(90deg, rgba(18,59,97,0.045) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(18,59,97,0.045) 1px, transparent 1px);
-  background-size: auto, 36px 36px, 36px 36px, 36px 36px;
+  background: #ffffff;
 }
 
 .collab-graph-card::before,
@@ -1529,18 +1524,13 @@ body {
 }
 
 .collab-graph-card::before {
-  inset: 14px;
-  border: 1px solid rgba(18,59,97,0.08);
+  inset: 18px;
+  border: 1px solid rgba(18,59,97,0.05);
   border-radius: 8px;
 }
 
 .collab-graph-card::after {
-  right: 18px;
-  bottom: 18px;
-  width: 118px;
-  height: 42px;
-  border-right: 2px solid rgba(139,26,43,0.18);
-  border-bottom: 2px solid rgba(139,26,43,0.18);
+  display: none;
 }
 
 .collab-graph-toolbar {

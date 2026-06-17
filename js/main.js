@@ -738,6 +738,134 @@ function drawCollabGraph(nodes, edges, centerName) {
   window.addEventListener("resize", App._collabResizeHandler);
 }
 
+function drawCollabBubbleGraph(nodes, edges, centerName) {
+  var el = document.getElementById("collab-graph");
+  var empty = document.getElementById("collab-empty");
+  if (!el) return;
+  if (!window.echarts) {
+    el.innerHTML = '<div class="collab-fallback">关系图组件正在加载或被浏览器拦截。左侧列表仍可查看合作次数与合作论文。</div>';
+    return;
+  }
+  if (empty) empty.hidden = edges.length > 0;
+  if (!edges.length) {
+    el.innerHTML = "";
+    return;
+  }
+  if (App.collabChart) App.collabChart.dispose();
+  App.collabChart = echarts.init(el);
+
+  var nodeMaxValue = Math.max.apply(null, nodes.map(function(node) {
+    return (node.cooperationCount || 0) + Math.max(1, Math.round((node.paperCount || 0) / 3));
+  }));
+  var graphNodes = nodes.map(function(node) {
+    var isCenter = centerName && node.name === centerName;
+    var nodeValue = (node.cooperationCount || 0) + Math.max(1, Math.round((node.paperCount || 0) / 3));
+    var ratio = nodeMaxValue ? nodeValue / nodeMaxValue : 0;
+    var size = Math.max(40, Math.min(96, 38 + Math.sqrt(ratio) * 58));
+    if (isCenter) size = Math.max(size, 78);
+    return {
+      id: node.name,
+      name: node.name,
+      value: nodeValue,
+      symbolSize: size,
+      category: isCenter ? 0 : 1,
+      draggable: true,
+      itemStyle: {
+        color: isCenter ? "#3d7185" : "#8fb8c7",
+        borderColor: "#ffffff",
+        borderWidth: 2,
+        shadowBlur: isCenter ? 12 : 8,
+        shadowColor: "rgba(18,59,97,0.18)"
+      },
+      label: {
+        show: true,
+        position: "inside",
+        formatter: function(params) {
+          var raw = params.data.raw || {};
+          var count = centerName ? (raw.cooperationCount || 0) + "次" : (raw.paperCount || 0) + "篇";
+          return raw.name + "\n" + count;
+        },
+        color: "#ffffff",
+        fontWeight: 700,
+        fontSize: size >= 72 ? 12 : 10,
+        lineHeight: size >= 72 ? 17 : 14,
+        overflow: "break",
+        width: Math.max(34, size - 12)
+      },
+      raw: node
+    };
+  });
+  var graphLinks = edges.map(function(edge) {
+    return {
+      source: edge.source,
+      target: edge.target,
+      value: edge.count,
+      lineStyle: {
+        width: Math.max(1.2, Math.min(3.8, 0.8 + Math.sqrt(edge.count) * 0.42)),
+        color: "#244758",
+        opacity: 0.72,
+        curveness: 0
+      },
+      raw: edge
+    };
+  });
+
+  App.collabChart.setOption({
+    animationDuration: 450,
+    color: ["#3d7185", "#8fb8c7"],
+    tooltip: {
+      trigger: "item",
+      confine: true,
+      formatter: function(params) {
+        if (params.dataType === "node") {
+          var node = params.data.raw || {};
+          var withCurrent = "";
+          if (centerName && centerName !== node.name) {
+            var edge = buildCollaborationData().edgeMap.get(getCollabPairKey(centerName, node.name));
+            if (edge) withCurrent = "<br>与当前教师合作次数：" + edge.count;
+          }
+          return "<strong>" + escapeHTML(node.name) + "</strong><br>" +
+            escapeHTML(node.department || "系所暂缺") + "<br>" +
+            escapeHTML(node.title || "职称暂缺") + "<br>" +
+            "论文数量：" + (node.paperCount || 0) + "<br>" +
+            "合作总次数：" + (node.cooperationCount || 0) + withCurrent;
+        }
+        var edgeData = params.data.raw || {};
+        return "<strong>" + escapeHTML(edgeData.source) + " - " + escapeHTML(edgeData.target) + "</strong><br>" +
+          "合作次数：" + (edgeData.count || 0) + "<br>" +
+          "最近论文：" + escapeHTML(getRecentPaperTitle(edgeData) || "暂无题名");
+      }
+    },
+    series: [{
+      type: "graph",
+      layout: "force",
+      left: 28,
+      right: 28,
+      top: 28,
+      bottom: 28,
+      roam: true,
+      draggable: true,
+      data: graphNodes,
+      links: graphLinks,
+      categories: [{ name: "中心教师" }, { name: "合作教师" }],
+      edgeSymbol: ["none", "none"],
+      labelLayout: { hideOverlap: true },
+      force: { repulsion: centerName ? 650 : 520, edgeLength: centerName ? [150, 230] : [150, 230], gravity: 0.03, friction: 0.62 },
+      emphasis: { focus: "adjacency", lineStyle: { opacity: 1, width: 4 } }
+    }]
+  });
+  App.collabChart.on("click", function(params) {
+    if (params.dataType === "node" && params.data && params.data.name) window.location.href = teacherDetailUrlByName(params.data.name);
+    if (params.dataType === "edge" && params.data && params.data.raw) {
+      var edge = params.data.raw;
+      renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+    }
+  });
+  window.removeEventListener("resize", App._collabResizeHandler || function() {});
+  App._collabResizeHandler = function() { if (App.collabChart) App.collabChart.resize(); };
+  window.addEventListener("resize", App._collabResizeHandler);
+}
+
 function renderDefaultCollabGraph() {
   var data = buildCollaborationData();
   var edges = data.edges.filter(function(edge) { return edge.count >= 2; }).slice(0, 12);
@@ -746,7 +874,7 @@ function renderDefaultCollabGraph() {
   edges.forEach(function(edge) { names.add(edge.source); names.add(edge.target); });
   var nodes = Array.from(names).map(function(name) { return data.nodeMap.get(name); }).filter(Boolean);
   setCollabGraphHeader("高频合作关系", "默认展示合作次数最高的核心关系，可搜索教师查看个人合作网络");
-  drawCollabGraph(nodes, edges, "");
+  drawCollabBubbleGraph(nodes, edges, "");
 }
 
 function showTeacherCollaboration(name) {
@@ -761,7 +889,7 @@ function showTeacherCollaboration(name) {
   var nodes = Array.from(names).map(function(item) { return data.nodeMap.get(item); }).filter(Boolean);
   setCollabGraphHeader(name + " 的个人合作网络", edges.length ? "点击节点可切换中心教师，点击连线查看合作论文" : "暂无本院共同署名合作关系");
   renderTeacherCollabInfo(name);
-  drawCollabGraph(nodes, edges, name);
+  drawCollabBubbleGraph(nodes, edges, name);
 }
 
 function attachCollabSearch() {
