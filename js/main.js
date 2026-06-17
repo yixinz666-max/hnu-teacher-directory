@@ -65,6 +65,10 @@ function collaborationPairUrl(source, target) {
   return "collaboration.html?source=" + encodeURIComponent(source || "") + "&target=" + encodeURIComponent(target || "");
 }
 
+function collaborationNetworkUrl(name) {
+  return "index.html?collabTeacher=" + encodeURIComponent(name || "") + "#collaboration";
+}
+
 function renderTeacherNameLink(name, className) {
   return '<a href="' + teacherDetailUrlByName(name) + '"' + (className ? ' class="' + className + '"' : '') + '>' + escapeHTML(name) + '</a>';
 }
@@ -1041,6 +1045,8 @@ function renderCollaborationNetwork() {
   renderCollabOverview();
   renderDefaultCollabGraph();
   attachCollabSearch();
+  var focusTeacher = (getQueryParam("collabTeacher") || "").trim();
+  if (focusTeacher) showTeacherCollaboration(focusTeacher);
   var reset = document.getElementById("collab-reset");
   if (reset && reset.dataset.ready !== "1") {
     reset.dataset.ready = "1";
@@ -1438,7 +1444,7 @@ async function renderCollaborationPairPage() {
     '<div class="pair-teacher"><h2>' + renderTeacherNameLink(target, "teacher-heading-link") + '</h2><p>' + escapeHTML((targetNode && targetNode.title) || "职称暂缺") + ' / ' + escapeHTML((targetNode && targetNode.department) || "系所暂缺") + '</p></div>' +
     '</div>' +
     (papers.length ? '<div class="pair-paper-list">' + papers.map(renderCollaborationPaperCard).join("") + '</div>' : '<div class="empty-state"><p>暂未发现这两位教师的共同署名论文。</p></div>') +
-    '<div class="pair-actions"><a class="btn btn-primary" href="index.html#collaboration">返回学术合作网络</a><a class="btn btn-outline" href="list.html">浏览教师名录</a></div>' +
+    '<div class="pair-actions"><a class="btn btn-primary" href="' + collaborationNetworkUrl(source) + '">返回' + escapeHTML(source) + '的合作网络</a><a class="btn btn-outline" href="list.html">浏览教师名录</a></div>' +
     '</div></div>';
 }
 
