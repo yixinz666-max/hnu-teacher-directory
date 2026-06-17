@@ -755,14 +755,14 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
   App.collabChart = echarts.init(el);
 
   var nodeMaxValue = Math.max.apply(null, nodes.map(function(node) {
-    return (node.cooperationCount || 0) + Math.max(1, Math.round((node.paperCount || 0) / 3));
+    return Math.max(1, node.paperCount || 0);
   }));
   var graphNodes = nodes.map(function(node) {
     var isCenter = centerName && node.name === centerName;
-    var nodeValue = (node.cooperationCount || 0) + Math.max(1, Math.round((node.paperCount || 0) / 3));
+    var nodeValue = Math.max(1, node.paperCount || 0);
     var ratio = nodeMaxValue ? nodeValue / nodeMaxValue : 0;
-    var size = Math.max(40, Math.min(96, 38 + Math.sqrt(ratio) * 58));
-    if (isCenter) size = Math.max(size, 78);
+    var size = Math.max(36, Math.min(88, 34 + Math.sqrt(ratio) * 54));
+    if (isCenter) size = Math.max(size, 68);
     return {
       id: node.name,
       name: node.name,
@@ -783,6 +783,7 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
         formatter: function(params) {
           var raw = params.data.raw || {};
           var count = centerName ? (raw.cooperationCount || 0) + "次" : (raw.paperCount || 0) + "篇";
+          count = (raw.paperCount || 0) + "篇";
           return raw.name + "\n" + count;
         },
         color: "#ffffff",
@@ -801,9 +802,9 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
       target: edge.target,
       value: edge.count,
       lineStyle: {
-        width: Math.max(1.2, Math.min(3.8, 0.8 + Math.sqrt(edge.count) * 0.42)),
+        width: Math.max(0.8, Math.min(2.4, 0.55 + Math.sqrt(edge.count) * 0.26)),
         color: "#244758",
-        opacity: 0.72,
+        opacity: 0.68,
         curveness: 0
       },
       raw: edge
@@ -850,8 +851,8 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
       categories: [{ name: "中心教师" }, { name: "合作教师" }],
       edgeSymbol: ["none", "none"],
       labelLayout: { hideOverlap: true },
-      force: { repulsion: centerName ? 650 : 520, edgeLength: centerName ? [150, 230] : [150, 230], gravity: 0.03, friction: 0.62 },
-      emphasis: { focus: "adjacency", lineStyle: { opacity: 1, width: 4 } }
+      force: { repulsion: centerName ? 430 : 360, edgeLength: centerName ? [96, 150] : [92, 145], gravity: 0.055, friction: 0.65 },
+      emphasis: { focus: "adjacency", lineStyle: { opacity: 1, width: 3 } }
     }]
   });
   App.collabChart.on("click", function(params) {
