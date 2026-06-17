@@ -1585,11 +1585,11 @@ body {
 }
 
 .legend-center {
-  background: #6d7781;
+  background: linear-gradient(90deg, #dff4f6, #89cbd5, #287f92);
 }
 
 .legend-link {
-  background: linear-gradient(90deg, #c9c8ff, #ffd2d2, #ffe9bd);
+  background: #2f8192;
 }
 
 .collab-reset-btn {
