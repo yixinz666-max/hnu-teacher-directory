@@ -584,6 +584,74 @@ function getTeacherCollabEdges(name) {
     .sort(function(a, b) { return b.count - a.count; });
 }
 
+function getCommonResearchFields(a, b) {
+  var left = (a && a.researchFields) || [];
+  var right = (b && b.researchFields) || [];
+  var rightKeys = new Set(right.map(function(item) { return normalizeCollabText(item); }).filter(Boolean));
+  return left.filter(function(item) { return rightKeys.has(normalizeCollabText(item)); }).slice(0, 4);
+}
+
+function getTitlePriority(title) {
+  var text = String(title || "");
+  if (/院士|杰出|长江|国家级|教授/.test(text)) return 3;
+  if (/副教授|研究员|高级/.test(text)) return 2;
+  if (/讲师|助理/.test(text)) return 1;
+  return 0;
+}
+
+function getAcademicPathRecommendations(name) {
+  var data = buildCollaborationData();
+  var center = data.nodeMap.get(name);
+  if (!center) return [];
+  return getTeacherCollabEdges(name).map(function(edge) {
+    var otherName = edge.source === name ? edge.target : edge.source;
+    var other = data.nodeMap.get(otherName);
+    var commonFields = getCommonResearchFields(center, other);
+    var sameDept = other && center.department && other.department === center.department;
+    var score = edge.count * 100 + (edge.papers || []).length * 10 + commonFields.length * 6 + (sameDept ? 4 : 0) + getTitlePriority(other && other.title);
+    return {
+      edge: edge,
+      other: other,
+      otherName: otherName,
+      commonFields: commonFields,
+      sameDept: sameDept,
+      score: score
+    };
+  }).sort(function(a, b) { return b.score - a.score; });
+}
+
+function renderAcademicPathCards(name, recommendations) {
+  if (!recommendations.length) {
+    return '<div class="collab-block academic-path-block"><h3>学术联系路径</h3>' +
+      '<p class="collab-block-note">基于论文共同署名关系，展示可能的合作联系线索。</p>' +
+      '<div class="collab-empty-state">暂无可识别的学术联系路径，可尝试从研究方向、系所或教师主页信息进一步查找联系线索。</div></div>';
+  }
+  return '<div class="collab-block academic-path-block"><h3>学术联系路径</h3>' +
+    '<p class="collab-block-note">基于论文共同署名关系，展示可能的合作联系线索。</p>' +
+    '<div class="academic-path-list">' + recommendations.slice(0, 5).map(function(item) {
+      var other = item.other || {};
+      var fields = item.commonFields.length ? item.commonFields.join("、") : (item.sameDept ? "同一系所" : "共同署名论文");
+      var note = item.commonFields.length
+        ? "两位教师在" + fields + "方向有共同署名成果，可作为学术联系线索参考。"
+        : "两位教师存在共同署名论文，可结合论文主题进一步判断合作线索。";
+      return '<article class="academic-path-card" data-source="' + escapeHTML(item.edge.source) + '" data-target="' + escapeHTML(item.edge.target) + '" data-other="' + escapeHTML(item.otherName) + '">' +
+        '<div class="academic-path-head"><strong>' + escapeHTML(item.otherName) + '</strong><span>' + escapeHTML(other.title || "职称暂缺") + '</span></div>' +
+        '<p class="academic-path-dept">' + escapeHTML(other.department || "系所暂缺") + '</p>' +
+        '<div class="academic-path-stats"><span>合作次数：' + item.edge.count + '次</span><span>共同论文：' + ((item.edge.papers || []).length) + '篇</span></div>' +
+        '<p class="academic-path-fields">关联方向：' + escapeHTML(fields) + '</p>' +
+        '<p class="academic-path-note">' + escapeHTML(note) + '</p>' +
+        '<div class="academic-path-actions">' +
+        '<button type="button" class="path-paper-btn" data-action="papers">查看共同论文</button>' +
+        '<a href="' + teacherDetailUrlByName(item.otherName) + '">查看该教师主页</a>' +
+        '<button type="button" class="path-paper-btn" data-action="evidence">展开合作依据</button>' +
+        '</div>' +
+        '<div class="academic-path-evidence" hidden>' + (item.edge.papers || []).slice(0, 3).map(function(paper) {
+          return '<p>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + '</p>';
+        }).join("") + '</div>' +
+        '</article>';
+    }).join("") + '</div></div>';
+}
+
 function renderCollabOverview() {
   var data = buildCollaborationData();
   var info = document.getElementById("collab-info");
@@ -625,6 +693,7 @@ function renderTeacherCollabInfo(name) {
   var edges = getTeacherCollabEdges(name);
   var total = edges.reduce(function(sum, edge) { return sum + edge.count; }, 0);
   var top = edges.slice(0, 5);
+  var pathRecommendations = getAcademicPathRecommendations(name);
   var personalPapers = collectTeacherPublicationTexts(teacher).map(parseCollabPaper).filter(function(paper) {
     return paper && (paper.title || paper.raw);
   }).slice(0, 8);
@@ -649,14 +718,39 @@ function renderTeacherCollabInfo(name) {
           '</article>';
       }).join("") + '</div></div>' :
       '<div class="collab-empty-state">暂未发现该教师与本学院其他教师的论文合作记录。</div>');
+    info.innerHTML += renderAcademicPathCards(name, pathRecommendations);
   info.querySelectorAll(".collab-person").forEach(function(item) {
     item.addEventListener("click", function() {
       var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
       if (edge) window.location.href = collaborationPairUrl(edge.source, edge.target);
     });
   });
+  info.querySelectorAll(".academic-path-card").forEach(function(item) {
+    item.addEventListener("click", function(e) {
+      if (e.target && e.target.closest("a")) return;
+      var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
+      if (!edge) return;
+      var other = this.dataset.other;
+      if (e.target && e.target.dataset && e.target.dataset.action === "evidence") {
+        var evidence = this.querySelector(".academic-path-evidence");
+        if (evidence) evidence.hidden = !evidence.hidden;
+      }
+      showCollaborationPath(name, other, edge);
+    });
+  });
   if (!edges.length) renderCollabPaperList(personalPapers, name + " 个人论文");
   else renderCollabPaperList(edges[0].papers, edges[0].source + " - " + edges[0].target + " 合作论文");
+}
+
+function showCollaborationPath(centerName, otherName, edge) {
+  var data = buildCollaborationData();
+  var edges = getTeacherCollabEdges(centerName);
+  var names = new Set([centerName]);
+  edges.forEach(function(item) { names.add(item.source); names.add(item.target); });
+  var nodes = Array.from(names).map(function(item) { return data.nodeMap.get(item); }).filter(Boolean);
+  setCollabGraphHeader(centerName + " 与 " + otherName + " 的合作关系", "共同论文 " + ((edge.papers || []).length) + " 篇，合作次数 " + edge.count + " 次");
+  drawCollabBubbleGraph(nodes, edges, centerName, getCollabPairKey(centerName, otherName));
+  renderCollabPaperList(edge.papers || [], centerName + " - " + otherName + " 共同论文依据");
 }
 
 function setCollabGraphHeader(title, subtitle) {
@@ -799,7 +893,7 @@ function drawCollabGraph(nodes, edges, centerName) {
   window.addEventListener("resize", App._collabResizeHandler);
 }
 
-function drawCollabBubbleGraph(nodes, edges, centerName) {
+function drawCollabBubbleGraph(nodes, edges, centerName, highlightedPairKey) {
   var el = document.getElementById("collab-graph");
   var empty = document.getElementById("collab-empty");
   if (!el) return;
@@ -836,8 +930,10 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
   var nodeMaxValue = centerName ? maxCenterCoop : Math.max.apply(null, nodes.map(function(node) {
     return Math.max(1, node.paperCount || 0);
   }));
+  var highlightedNames = new Set(highlightedPairKey ? highlightedPairKey.split("::") : []);
   var graphNodes = nodes.map(function(node) {
     var isCenter = centerName && node.name === centerName;
+    var isHighlighted = highlightedNames.has(node.name);
     var nodeValue = centerName
       ? (isCenter ? Math.max(1, Math.round(maxCenterCoop * 0.58)) : Math.max(1, centerCoopCounts.get(node.name) || 0))
       : Math.max(1, node.paperCount || 0);
@@ -854,11 +950,11 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
       category: isCenter ? 0 : 1,
       draggable: true,
       itemStyle: {
-        color: cyanScale(ratio),
+        color: isHighlighted ? "#287f92" : cyanScale(ratio),
         borderColor: "#ffffff",
-        borderWidth: 1.5,
-        shadowBlur: isCenter ? 12 : 7,
-        shadowColor: "rgba(40,127,146,0.18)"
+        borderWidth: isHighlighted ? 2.5 : 1.5,
+        shadowBlur: isHighlighted ? 15 : (isCenter ? 12 : 7),
+        shadowColor: isHighlighted ? "rgba(40,127,146,0.32)" : "rgba(40,127,146,0.18)"
       },
       label: {
         show: true,
@@ -891,14 +987,15 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
       source = centerName;
       target = edge.source === centerName ? edge.target : edge.source;
     }
+    var isHighlighted = highlightedPairKey && getCollabPairKey(edge.source, edge.target) === highlightedPairKey;
     return {
       source: source,
       target: target,
       value: edge.count,
       lineStyle: {
-        width: Math.max(0.7, Math.min(1.8, 0.5 + Math.sqrt(edge.count) * 0.18)),
-        color: "#2f8192",
-        opacity: 0.62,
+        width: isHighlighted ? 3.2 : Math.max(0.7, Math.min(1.8, 0.5 + Math.sqrt(edge.count) * 0.18)),
+        color: isHighlighted ? "#0f6172" : "#2f8192",
+        opacity: isHighlighted ? 0.95 : 0.62,
         curveness: 0
       },
       raw: edge
@@ -1286,6 +1383,7 @@ function renderDetail(t) {
     '</div></div></div></div>' +
     '<div class="detail-content"><div class="container">' +
     renderProfileContent(t, tags) +
+    renderAcademicContactEntry(t) +
     '<div class="source-bar"><strong><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> 数据来源声明：</strong>本页面信息来源于<a href="' + t.source_url + '" target="_blank" rel="noopener">湖南大学土木工程学院官网公开页面</a>（所属系所：' + t.source_department + '），采集时间：' + t.last_updated + '。仅供学术检索参考，如发现信息有误，请以官网信息为准。</div>' +
     '</div></div>';
 
@@ -1301,6 +1399,14 @@ function renderDetail(t) {
 
 function renderSection(title, content, className) {
   return '<div class="detail-section ' + (className || '') + '"><h3>' + title + '</h3>' + content + '</div>';
+}
+
+function renderAcademicContactEntry(t) {
+  if (!t || !t.name) return "";
+  return renderSection("学术联系路径",
+    '<p class="academic-contact-intro">查看该教师与学院其他教师的论文合作关系，辅助判断可能的学术联系线索。</p>' +
+    '<a class="btn btn-primary academic-contact-btn" href="' + collaborationNetworkUrl(t.name) + '">查看联系路径</a>',
+    "academic-contact-section");
 }
 
 function renderCollapsible(title, content) {
