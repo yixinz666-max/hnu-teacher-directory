@@ -392,6 +392,18 @@ function parseCollabPaper(raw) {
   var text = String(raw || "").replace(/\s+/g, " ").trim();
   var yearMatches = text.match(/(?:19|20)\d{2}/g) || [];
   var year = yearMatches.length ? yearMatches[yearMatches.length - 1] : "";
+  var yearParenMatch = text.match(/^(.+?)\s*\(((?:19|20)\d{2})\)\.\s*(.+)$/);
+  if (yearParenMatch) {
+    var afterYear = yearParenMatch[3].trim();
+    var afterYearParts = afterYear.split(/\s*,\s*/).map(function(part) { return part.trim(); }).filter(Boolean);
+    return {
+      raw: text,
+      title: afterYearParts[0] || afterYear,
+      year: yearParenMatch[2],
+      venue: afterYearParts[1] || "",
+      authors: yearParenMatch[1].trim()
+    };
+  }
   var sentenceParts = text.split(/[.。]/).map(function(part) { return part.trim(); }).filter(Boolean);
   if (sentenceParts.length >= 3 && /[,，、]/.test(sentenceParts[0])) {
     return {
