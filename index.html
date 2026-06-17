@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>湖南大学土木工程学院教师信息库</title>
   <meta name="description" content="湖南大学土木工程学院教师信息检索与展示平台，涵盖基础信息、教育背景、研究方向、科研项目、学术成果等公开信息。">
-  <link rel="stylesheet" href="css/main.css?v=2026061718">
+  <link rel="stylesheet" href="css/main.css?v=2026061717">
 </head>
 <body>
 
@@ -96,6 +96,14 @@
         <p class="section-desc">基于教师论文共同署名关系，展示学院教师之间的学术合作次数与合作论文。</p>
       </div>
       <div class="collab-layout">
+        <aside class="collab-panel">
+          <div class="collab-search">
+            <input type="text" id="collab-search" autocomplete="off" placeholder="搜索教师姓名，查看个人合作网络">
+            <div class="collab-suggestions" id="collab-suggestions"></div>
+          </div>
+          <div id="collab-info"></div>
+          <div id="collab-paper-list" class="collab-paper-list"></div>
+        </aside>
         <div class="collab-graph-card">
           <div class="collab-graph-toolbar">
             <div>
@@ -111,14 +119,6 @@
           <div id="collab-graph" class="collab-graph"></div>
           <div id="collab-empty" class="collab-empty" hidden>暂无可展示的合作关系。</div>
         </div>
-        <aside class="collab-panel">
-          <div class="collab-search">
-            <input type="text" id="collab-search" autocomplete="off" placeholder="搜索教师姓名，查看个人合作网络">
-            <div class="collab-suggestions" id="collab-suggestions"></div>
-          </div>
-          <div id="collab-info"></div>
-          <div id="collab-paper-list" class="collab-paper-list"></div>
-        </aside>
       </div>
     </div>
   </section>
@@ -268,7 +268,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-<script src="data/teachers.js?v=2026061718"></script>
-<script src="js/main.js?v=2026061718"></script>
+<script src="data/teachers.js?v=2026061717"></script>
+<script src="js/main.js?v=2026061717"></script>
 </body>
 </html>
