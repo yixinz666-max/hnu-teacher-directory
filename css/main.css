@@ -1511,6 +1511,36 @@ body {
 .collab-graph-card {
   min-width: 0;
   overflow: hidden;
+  position: relative;
+  background:
+    linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
+    radial-gradient(circle at 18px 18px, rgba(18,59,97,0.10) 1px, transparent 1.5px),
+    linear-gradient(90deg, rgba(18,59,97,0.045) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(18,59,97,0.045) 1px, transparent 1px);
+  background-size: auto, 36px 36px, 36px 36px, 36px 36px;
+}
+
+.collab-graph-card::before,
+.collab-graph-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.collab-graph-card::before {
+  inset: 14px;
+  border: 1px solid rgba(18,59,97,0.08);
+  border-radius: 8px;
+}
+
+.collab-graph-card::after {
+  right: 18px;
+  bottom: 18px;
+  width: 118px;
+  height: 42px;
+  border-right: 2px solid rgba(139,26,43,0.18);
+  border-bottom: 2px solid rgba(139,26,43,0.18);
 }
 
 .collab-graph-toolbar {
@@ -1520,6 +1550,10 @@ body {
   gap: 14px;
   padding: 16px 18px;
   border-bottom: 1px solid var(--border-light);
+  position: relative;
+  z-index: 2;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(8px);
 }
 
 .collab-graph-toolbar strong {
@@ -1533,6 +1567,38 @@ body {
   color: var(--text-muted);
   font-size: 0.82rem;
   margin-top: 2px;
+}
+
+.collab-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.collab-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+}
+
+.collab-legend i {
+  display: inline-block;
+  width: 18px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.legend-center {
+  background: linear-gradient(90deg, #8b1a2b, #d4a017);
+}
+
+.legend-link {
+  background: #8b1a2b;
 }
 
 .collab-reset-btn {
@@ -1555,7 +1621,9 @@ body {
 
 .collab-graph {
   width: 100%;
-  height: 520px;
+  height: 560px;
+  position: relative;
+  z-index: 2;
 }
 
 .collab-empty {
@@ -1599,6 +1667,10 @@ body {
   .collab-graph-toolbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .collab-legend {
+    margin-left: 0;
+    flex-wrap: wrap;
   }
   .collab-graph {
     height: 360px;

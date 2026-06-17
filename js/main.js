@@ -631,17 +631,28 @@ function drawCollabGraph(nodes, edges, centerName) {
       id: node.name,
       name: node.name,
       value: node.cooperationCount || node.paperCount || 1,
-      symbolSize: isCenter ? 68 : Math.max(34, Math.min(58, 30 + (node.cooperationCount || 1) * 2.5)),
+      symbolSize: isCenter ? 50 : Math.max(24, Math.min(38, 22 + Math.sqrt(node.cooperationCount || 1) * 3.2)),
       category: isCenter ? 0 : 1,
       draggable: true,
       itemStyle: {
         color: isCenter ? "#8b1a2b" : "#7fb0d6",
         borderColor: isCenter ? "#d4a017" : "#ffffff",
-        borderWidth: isCenter ? 4 : 2,
-        shadowBlur: isCenter ? 12 : 0,
-        shadowColor: isCenter ? "rgba(139,26,43,0.28)" : "transparent"
+        borderWidth: isCenter ? 3 : 1.5,
+        shadowBlur: isCenter ? 10 : 5,
+        shadowColor: isCenter ? "rgba(139,26,43,0.24)" : "rgba(18,59,97,0.14)"
       },
-      label: { color: isCenter ? "#8b1a2b" : "#26475e", fontWeight: isCenter ? 900 : 600 },
+      label: {
+        color: isCenter ? "#8b1a2b" : "#26475e",
+        fontWeight: isCenter ? 900 : 600,
+        backgroundColor: "rgba(255,255,255,0.76)",
+        borderRadius: 4,
+        padding: [1, 5],
+        fontSize: high ? 11 : 9,
+        backgroundColor: "rgba(255,255,255,0.88)",
+        borderColor: high ? "rgba(139,26,43,0.22)" : "rgba(95,124,148,0.2)",
+        borderWidth: 1,
+        borderRadius: 8
+      },
       raw: node
     };
   });
@@ -652,9 +663,10 @@ function drawCollabGraph(nodes, edges, centerName) {
       target: edge.target,
       value: edge.count,
       lineStyle: {
-        width: Math.max(2, Math.min(11, 1.4 + edge.count * 1.35)),
+        width: Math.max(1.5, Math.min(8, 1.2 + Math.sqrt(edge.count) * 1.25)),
         color: high ? "#8b1a2b" : "#9fb8cc",
-        opacity: high ? 0.92 : 0.62
+        opacity: high ? 0.9 : 0.48,
+        curveness: high ? 0.08 : 0.04
       },
       label: {
         show: true,
@@ -698,15 +710,20 @@ function drawCollabGraph(nodes, edges, centerName) {
     series: [{
       type: "graph",
       layout: "force",
+      left: 24,
+      right: 42,
+      top: 28,
+      bottom: 34,
       roam: true,
       draggable: true,
       data: graphNodes,
       links: graphLinks,
       categories: [{ name: "中心教师" }, { name: "合作教师" }],
-      label: { show: true, position: "right", fontSize: 12 },
+      label: { show: true, position: "right", distance: 8, fontSize: 11 },
       edgeLabel: { show: true },
       edgeSymbol: ["none", "none"],
-      force: { repulsion: centerName ? 360 : 220, edgeLength: centerName ? [90, 150] : [70, 140], gravity: 0.08 },
+      labelLayout: { hideOverlap: true },
+      force: { repulsion: centerName ? 520 : 360, edgeLength: centerName ? [120, 210] : [110, 190], gravity: 0.045, friction: 0.58 },
       emphasis: { focus: "adjacency", lineStyle: { opacity: 1 } }
     }]
   });
