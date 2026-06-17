@@ -391,8 +391,18 @@ function collectTeacherPublicationTexts(t) {
 function parseCollabPaper(raw) {
   var text = String(raw || "").replace(/\s+/g, " ").trim();
   var yearMatches = text.match(/(?:19|20)\d{2}/g) || [];
-  var parts = text.split(/[，,；;。]/).map(function(part) { return part.trim(); }).filter(Boolean);
   var year = yearMatches.length ? yearMatches[yearMatches.length - 1] : "";
+  var sentenceParts = text.split(/[.。]/).map(function(part) { return part.trim(); }).filter(Boolean);
+  if (sentenceParts.length >= 3 && /[,，、]/.test(sentenceParts[0])) {
+    return {
+      raw: text,
+      title: sentenceParts[1],
+      year: year,
+      venue: sentenceParts[2].replace(/[,，]?(?:19|20)\d{2}.*/, "").trim(),
+      authors: sentenceParts[0]
+    };
+  }
+  var parts = text.split(/[，,；;。]/).map(function(part) { return part.trim(); }).filter(Boolean);
   var title = "";
   var venue = "";
   var authors = parts.length ? parts[0] : "";
@@ -515,10 +525,11 @@ function renderCollabPaperList(papers, heading) {
     '<div class="collab-block"><h3>' + escapeHTML(heading || "合作论文") + '</h3>' +
     '<div class="collab-paper-items">' + clean.slice(0, 12).map(function(paper) {
       var meta = [];
+      var cnkiUrl = paper.title ? "https://kns.cnki.net/kns8s/defaultresult/index?kw=" + encodeURIComponent(paper.title) : "";
       if (paper.year) meta.push('<span>' + escapeHTML(paper.year) + '</span>');
       if (paper.venue) meta.push('<span>' + escapeHTML(paper.venue) + '</span>');
       return '<article class="collab-paper">' +
-        '<h4>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + '</h4>' +
+        '<h4>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + (cnkiUrl ? ' <a class="cnki-link" href="' + cnkiUrl + '" target="_blank" rel="noopener">知网检索</a>' : '') + '</h4>' +
         (meta.length ? '<div class="collab-paper-meta">' + meta.join("") + '</div>' : '') +
         (paper.authors ? '<div class="collab-paper-authors">作者：' + escapeHTML(paper.authors) + '</div>' : '') +
         '</article>';
@@ -1358,8 +1369,9 @@ function renderCollaborationPaperCard(paper) {
   var meta = [];
   if (paper.year) meta.push('<span>' + escapeHTML(paper.year) + '</span>');
   if (paper.venue) meta.push('<span>' + escapeHTML(paper.venue) + '</span>');
+  var cnkiUrl = paper.title ? "https://kns.cnki.net/kns8s/defaultresult/index?kw=" + encodeURIComponent(paper.title) : "";
   return '<article class="pair-paper-card">' +
-    '<h3>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + '</h3>' +
+    '<h3>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + (cnkiUrl ? ' <a class="cnki-link" href="' + cnkiUrl + '" target="_blank" rel="noopener">知网检索</a>' : '') + '</h3>' +
     (meta.length ? '<div class="pair-paper-meta">' + meta.join("") + '</div>' : '') +
     (paper.authors ? '<p class="pair-paper-authors">作者：' + escapeHTML(paper.authors) + '</p>' : '') +
     '</article>';

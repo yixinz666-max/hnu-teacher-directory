@@ -1711,6 +1711,26 @@ body {
   line-height: 1.65;
 }
 
+.cnki-link {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef7f8;
+  color: #287f92;
+  border: 1px solid rgba(40,127,146,0.18);
+  font-size: 0.76rem;
+  font-weight: 700;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+.cnki-link:hover {
+  background: #287f92;
+  color: #fff;
+}
+
 .pair-paper-meta {
   display: flex;
   flex-wrap: wrap;
