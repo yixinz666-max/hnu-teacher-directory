@@ -55,6 +55,16 @@ function safeExternalUrl(value, fallback = "#") {
   }
 }
 
+function teacherDetailUrlByName(name) {
+  var teacher = (App.teachers || []).find(function(item) { return item && item.name === name; });
+  if (teacher && teacher.id) return "detail.html?id=" + encodeURIComponent(teacher.id);
+  return "scholar.html?name=" + encodeURIComponent(name || "");
+}
+
+function renderTeacherNameLink(name, className) {
+  return '<a href="' + teacherDetailUrlByName(name) + '"' + (className ? ' class="' + className + '"' : '') + '>' + escapeHTML(name) + '</a>';
+}
+
 async function loadData() {
   if (App.data) return App.data;
   if (window.__TEACHERS_DATA__) {
@@ -444,7 +454,7 @@ function renderCollabOverview() {
     '<div class="collab-block"><h3>高频合作 Top 5</h3><div class="collab-pair-list">' +
     topEdges.map(function(edge) {
       return '<article class="collab-pair" data-source="' + escapeHTML(edge.source) + '" data-target="' + escapeHTML(edge.target) + '">' +
-        '<div class="collab-pair-title"><span>' + escapeHTML(edge.source) + ' - ' + escapeHTML(edge.target) + '</span><span class="collab-count-badge">合作 ' + edge.count + ' 次</span></div>' +
+        '<div class="collab-pair-title"><span>' + renderTeacherNameLink(edge.source, "teacher-inline-link") + ' - ' + renderTeacherNameLink(edge.target, "teacher-inline-link") + '</span><span class="collab-count-badge">合作 ' + edge.count + ' 次</span></div>' +
         (getRecentPaperTitle(edge) ? '<div class="collab-paper-title">' + escapeHTML(getRecentPaperTitle(edge)) + '</div>' : '') +
         '</article>';
     }).join("") + '</div></div>';
@@ -471,7 +481,7 @@ function renderTeacherCollabInfo(name) {
     return paper && (paper.title || paper.raw);
   }).slice(0, 8);
   info.innerHTML =
-    '<div class="collab-teacher-head"><h3>' + escapeHTML(name) + '</h3>' +
+    '<div class="collab-teacher-head"><h3>' + renderTeacherNameLink(name, "teacher-heading-link") + '</h3>' +
     '<p>' + escapeHTML(node.title || "职称暂缺") + ' / ' + escapeHTML(node.department || "系所暂缺") + '</p>' +
     (node.researchFields.length ? '<div class="collab-tags">' + node.researchFields.slice(0, 4).map(function(tag) { return '<span class="collab-tag">' + escapeHTML(tag) + '</span>'; }).join("") + '</div>' : '') +
     '</div>' +
@@ -486,7 +496,7 @@ function renderTeacherCollabInfo(name) {
       top.map(function(edge) {
         var other = edge.source === name ? edge.target : edge.source;
         return '<article class="collab-person" data-source="' + escapeHTML(edge.source) + '" data-target="' + escapeHTML(edge.target) + '">' +
-          '<div class="collab-person-title"><span>' + escapeHTML(other) + '</span><span class="collab-count-badge">' + edge.count + ' 次</span></div>' +
+          '<div class="collab-person-title"><span>' + renderTeacherNameLink(other, "teacher-inline-link") + '</span><span class="collab-count-badge">' + edge.count + ' 次</span></div>' +
           (getRecentPaperTitle(edge) ? '<div class="collab-paper-title">' + escapeHTML(getRecentPaperTitle(edge)) + '</div>' : '') +
           '</article>';
       }).join("") + '</div></div>' :
@@ -593,7 +603,7 @@ function drawCollabGraph(nodes, edges, centerName) {
     }]
   });
   App.collabChart.on("click", function(params) {
-    if (params.dataType === "node" && params.data && params.data.name) showTeacherCollaboration(params.data.name);
+    if (params.dataType === "node" && params.data && params.data.name) window.location.href = teacherDetailUrlByName(params.data.name);
     if (params.dataType === "edge" && params.data && params.data.raw) {
       var edge = params.data.raw;
       renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
@@ -821,7 +831,7 @@ function renderTeacherCards() {
   grid.innerHTML = teachers.map(t => renderTeacherCard(t)).join("");
 }
 
-function renderTeacherCard(t) {
+function renderTeacherCardLegacy(t) {
   const avatarHtml = getTeacherAvatar(t, 80);
   const tags = (t.research_interests || []).slice(0, 3).map(i => '<span class="tag tag-primary">' + escapeHTML(i) + '</span>').join("");
   const bio = t.intro || (t.education && t.education[0]) || "";
@@ -832,6 +842,26 @@ function renderTeacherCard(t) {
     (t.research_interests && t.research_interests.length ? "研究方向：" + t.research_interests.slice(0, 3).join("、") : "")
   ].filter(Boolean).join(" · ") || "暂无简介";
   return '<div class="card teacher-card"><div class="teacher-avatar">' + avatarHtml + '</div><div class="teacher-info"><div class="teacher-name">' + escapeHTML(t.name) + '</div><div class="teacher-title">' + escapeHTML(t.title) + (t.position ? " / " + escapeHTML(t.position) : "") + '</div><div class="teacher-dept">' + escapeHTML(t.department) + '</div><div class="teacher-tags">' + tags + '</div><div class="teacher-bio">' + escapeHTML(defaultBio) + '</div><div class="teacher-actions"><a href="detail.html?id=' + encodeURIComponent(t.id) + '" class="btn btn-primary btn-sm">查看详情</a><a href="' + safeExternalUrl(t.personal_page) + '" target="_blank" rel="noopener" class="btn btn-outline btn-sm">官网链接</a></div></div></div>';
+}
+
+function renderTeacherCard(t) {
+  const avatarHtml = getTeacherAvatar(t, 80);
+  const tags = (t.research_interests || []).slice(0, 3).map(i => '<span class="tag tag-primary">' + escapeHTML(i) + '</span>').join("");
+  const bio = t.intro || (t.education && t.education[0]) || "";
+  const defaultBio = bio || [
+    t.department || "",
+    t.title || "",
+    t.position || "",
+    (t.research_interests && t.research_interests.length ? "研究方向：" + t.research_interests.slice(0, 3).join("、") : "")
+  ].filter(Boolean).join(" · ") || "暂无简介";
+  return '<div class="card teacher-card"><div class="teacher-avatar">' + avatarHtml + '</div><div class="teacher-info">' +
+    renderTeacherNameLink(t.name, "teacher-name teacher-name-link") +
+    '<div class="teacher-title">' + escapeHTML(t.title) + (t.position ? " / " + escapeHTML(t.position) : "") + '</div>' +
+    '<div class="teacher-dept">' + escapeHTML(t.department) + '</div>' +
+    '<div class="teacher-tags">' + tags + '</div>' +
+    '<div class="teacher-bio">' + escapeHTML(defaultBio) + '</div>' +
+    '<div class="teacher-actions"><a href="detail.html?id=' + encodeURIComponent(t.id) + '" class="btn btn-primary btn-sm">查看详情</a>' +
+    '<a href="' + safeExternalUrl(t.personal_page) + '" target="_blank" rel="noopener" class="btn btn-outline btn-sm">官网链接</a></div></div></div>';
 }
 
 function initMobileFilterDrawer() {

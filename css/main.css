@@ -365,6 +365,10 @@ ul, ol { list-style: none; }
 .teacher-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .teacher-info { flex: 1; min-width: 0; }
 .teacher-name { font-size: 1.15rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 2px; }
+.teacher-name-link { display: inline-block; text-decoration: none; }
+.teacher-heading-link { color: var(--primary-dark); text-decoration: none; }
+.teacher-inline-link { color: inherit; text-decoration: none; }
+.teacher-name-link:hover, .teacher-heading-link:hover, .teacher-inline-link:hover { color: var(--accent); }
 .teacher-title { font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 2px; }
 .teacher-dept { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
 .teacher-tags { margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
