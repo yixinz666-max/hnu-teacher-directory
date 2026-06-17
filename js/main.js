@@ -761,15 +761,31 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
     return colors[index];
   }
 
-  var nodeMaxValue = Math.max.apply(null, nodes.map(function(node) {
+  var centerCoopCounts = new Map();
+  var centerTotalCount = 0;
+  if (centerName) {
+    edges.forEach(function(edge) {
+      if (edge.source === centerName || edge.target === centerName) {
+        var other = edge.source === centerName ? edge.target : edge.source;
+        centerCoopCounts.set(other, edge.count || 0);
+        centerTotalCount += edge.count || 0;
+      }
+    });
+  }
+  var maxCenterCoop = Math.max(1, Math.max.apply(null, Array.from(centerCoopCounts.values()).concat([1])));
+  var nodeMaxValue = centerName ? maxCenterCoop : Math.max.apply(null, nodes.map(function(node) {
     return Math.max(1, node.paperCount || 0);
   }));
   var graphNodes = nodes.map(function(node) {
     var isCenter = centerName && node.name === centerName;
-    var nodeValue = Math.max(1, node.paperCount || 0);
+    var nodeValue = centerName
+      ? (isCenter ? Math.max(1, Math.round(maxCenterCoop * 0.58)) : Math.max(1, centerCoopCounts.get(node.name) || 0))
+      : Math.max(1, node.paperCount || 0);
     var ratio = nodeMaxValue ? nodeValue / nodeMaxValue : 0;
-    var size = Math.max(36, Math.min(88, 34 + Math.sqrt(ratio) * 54));
-    if (isCenter) size = Math.max(size, 68);
+    var size = centerName
+      ? Math.max(32, Math.min(86, 30 + Math.sqrt(ratio) * 56))
+      : Math.max(36, Math.min(88, 34 + Math.sqrt(ratio) * 54));
+    if (isCenter) size = Math.max(58, Math.min(68, size));
     return {
       id: node.name,
       name: node.name,
@@ -791,6 +807,9 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
           var raw = params.data.raw || {};
           var count = centerName ? (raw.cooperationCount || 0) + "次" : (raw.paperCount || 0) + "篇";
           count = (raw.paperCount || 0) + "篇";
+          count = centerName
+            ? ((raw.name === centerName ? centerTotalCount : (centerCoopCounts.get(raw.name) || 0)) + "次")
+            : ((raw.paperCount || 0) + "篇");
           return raw.name + "\n" + count;
         },
         color: ratio > 0.55 ? "#ffffff" : "#174456",
