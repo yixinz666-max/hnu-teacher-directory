@@ -61,6 +61,10 @@ function teacherDetailUrlByName(name) {
   return "scholar.html?name=" + encodeURIComponent(name || "");
 }
 
+function collaborationPairUrl(source, target) {
+  return "collaboration.html?source=" + encodeURIComponent(source || "") + "&target=" + encodeURIComponent(target || "");
+}
+
 function renderTeacherNameLink(name, className) {
   return '<a href="' + teacherDetailUrlByName(name) + '"' + (className ? ' class="' + className + '"' : '') + '>' + escapeHTML(name) + '</a>';
 }
@@ -545,14 +549,14 @@ function renderCollabOverview() {
     '<div class="collab-block"><h3>高频合作 Top 5</h3><div class="collab-pair-list">' +
     topEdges.map(function(edge) {
       return '<article class="collab-pair" data-source="' + escapeHTML(edge.source) + '" data-target="' + escapeHTML(edge.target) + '">' +
-        '<div class="collab-pair-title"><span>' + renderTeacherNameLink(edge.source, "teacher-inline-link") + ' - ' + renderTeacherNameLink(edge.target, "teacher-inline-link") + '</span><span class="collab-count-badge">合作 ' + edge.count + ' 次</span></div>' +
+        '<div class="collab-pair-title"><span><a class="teacher-inline-link" href="' + collaborationPairUrl(edge.source, edge.target) + '">' + escapeHTML(edge.source) + '</a> - <a class="teacher-inline-link" href="' + collaborationPairUrl(edge.source, edge.target) + '">' + escapeHTML(edge.target) + '</a></span><span class="collab-count-badge">合作 ' + edge.count + ' 次</span></div>' +
         (getRecentPaperTitle(edge) ? '<div class="collab-paper-title">' + escapeHTML(getRecentPaperTitle(edge)) + '</div>' : '') +
         '</article>';
     }).join("") + '</div></div>';
   info.querySelectorAll(".collab-pair").forEach(function(item) {
     item.addEventListener("click", function() {
       var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
-      if (edge) renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+      if (edge) window.location.href = collaborationPairUrl(edge.source, edge.target);
     });
   });
   renderCollabPaperList([], "");
@@ -587,7 +591,7 @@ function renderTeacherCollabInfo(name) {
       top.map(function(edge) {
         var other = edge.source === name ? edge.target : edge.source;
         return '<article class="collab-person" data-source="' + escapeHTML(edge.source) + '" data-target="' + escapeHTML(edge.target) + '">' +
-          '<div class="collab-person-title"><span>' + renderTeacherNameLink(other, "teacher-inline-link") + '</span><span class="collab-count-badge">' + edge.count + ' 次</span></div>' +
+          '<div class="collab-person-title"><span><a class="teacher-inline-link" href="' + collaborationPairUrl(name, other) + '">' + escapeHTML(other) + '</a></span><span class="collab-count-badge">' + edge.count + ' 次</span></div>' +
           (getRecentPaperTitle(edge) ? '<div class="collab-paper-title">' + escapeHTML(getRecentPaperTitle(edge)) + '</div>' : '') +
           '</article>';
       }).join("") + '</div></div>' :
@@ -595,7 +599,7 @@ function renderTeacherCollabInfo(name) {
   info.querySelectorAll(".collab-person").forEach(function(item) {
     item.addEventListener("click", function() {
       var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
-      if (edge) renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+      if (edge) window.location.href = collaborationPairUrl(edge.source, edge.target);
     });
   });
   if (!edges.length) renderCollabPaperList(personalPapers, name + " 个人论文");
@@ -728,10 +732,13 @@ function drawCollabGraph(nodes, edges, centerName) {
     }]
   });
   App.collabChart.on("click", function(params) {
-    if (params.dataType === "node" && params.data && params.data.name) window.location.href = teacherDetailUrlByName(params.data.name);
+    if (params.dataType === "node" && params.data && params.data.name) {
+      if (centerName && params.data.name !== centerName) window.location.href = collaborationPairUrl(centerName, params.data.name);
+      else window.location.href = teacherDetailUrlByName(params.data.name);
+    }
     if (params.dataType === "edge" && params.data && params.data.raw) {
       var edge = params.data.raw;
-      renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+      window.location.href = collaborationPairUrl(edge.source, edge.target);
     }
   });
   window.removeEventListener("resize", App._collabResizeHandler || function() {});
@@ -891,10 +898,13 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
     }]
   });
   App.collabChart.on("click", function(params) {
-    if (params.dataType === "node" && params.data && params.data.name) window.location.href = teacherDetailUrlByName(params.data.name);
+    if (params.dataType === "node" && params.data && params.data.name) {
+      if (centerName && params.data.name !== centerName) window.location.href = collaborationPairUrl(centerName, params.data.name);
+      else window.location.href = teacherDetailUrlByName(params.data.name);
+    }
     if (params.dataType === "edge" && params.data && params.data.raw) {
       var edge = params.data.raw;
-      renderCollabPaperList(edge.papers, edge.source + " - " + edge.target + " 合作论文");
+      window.location.href = collaborationPairUrl(edge.source, edge.target);
     }
   });
   window.removeEventListener("resize", App._collabResizeHandler || function() {});
@@ -1343,6 +1353,46 @@ function renderBasicInfo(t) {
 }
 
 // ===== 数据说明页 =====
+function renderCollaborationPaperCard(paper) {
+  if (!paper) return "";
+  var meta = [];
+  if (paper.year) meta.push('<span>' + escapeHTML(paper.year) + '</span>');
+  if (paper.venue) meta.push('<span>' + escapeHTML(paper.venue) + '</span>');
+  return '<article class="pair-paper-card">' +
+    '<h3>' + escapeHTML(paper.title || paper.raw || "论文题名暂缺") + '</h3>' +
+    (meta.length ? '<div class="pair-paper-meta">' + meta.join("") + '</div>' : '') +
+    (paper.authors ? '<p class="pair-paper-authors">作者：' + escapeHTML(paper.authors) + '</p>' : '') +
+    '</article>';
+}
+
+async function renderCollaborationPairPage() {
+  await loadData();
+  var app = document.getElementById("app");
+  if (!app) return;
+  var source = (getQueryParam("source") || "").trim();
+  var target = (getQueryParam("target") || "").trim();
+  if (!source || !target) {
+    app.innerHTML = '<div class="empty-state"><p>请选择两位教师查看合作论文。</p><a class="btn btn-primary" href="index.html#collaboration">返回学术合作网络</a></div>';
+    return;
+  }
+  var data = buildCollaborationData();
+  var edge = data.edgeMap.get(getCollabPairKey(source, target));
+  var sourceNode = data.nodeMap.get(source);
+  var targetNode = data.nodeMap.get(target);
+  var papers = edge && edge.papers ? edge.papers : [];
+  app.innerHTML =
+    '<div class="page-title pair-page-title"><h1>合作论文</h1><p>' + escapeHTML(source) + ' 与 ' + escapeHTML(target) + ' 的共同署名论文</p></div>' +
+    '<div class="section"><div class="container pair-page-container">' +
+    '<div class="pair-summary-card">' +
+    '<div class="pair-teacher"><h2>' + renderTeacherNameLink(source, "teacher-heading-link") + '</h2><p>' + escapeHTML((sourceNode && sourceNode.title) || "职称暂缺") + ' / ' + escapeHTML((sourceNode && sourceNode.department) || "系所暂缺") + '</p></div>' +
+    '<div class="pair-count"><strong>' + papers.length + '</strong><span>合作论文</span></div>' +
+    '<div class="pair-teacher"><h2>' + renderTeacherNameLink(target, "teacher-heading-link") + '</h2><p>' + escapeHTML((targetNode && targetNode.title) || "职称暂缺") + ' / ' + escapeHTML((targetNode && targetNode.department) || "系所暂缺") + '</p></div>' +
+    '</div>' +
+    (papers.length ? '<div class="pair-paper-list">' + papers.map(renderCollaborationPaperCard).join("") + '</div>' : '<div class="empty-state"><p>暂未发现这两位教师的共同署名论文。</p></div>') +
+    '<div class="pair-actions"><a class="btn btn-primary" href="index.html#collaboration">返回学术合作网络</a><a class="btn btn-outline" href="list.html">浏览教师名录</a></div>' +
+    '</div></div>';
+}
+
 async function renderAboutPage() { await loadData(); }
 
 // ===== 入口 =====
@@ -1354,6 +1404,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (path === "index.html" || path === "") await renderHome();
       else if (path === "list.html") await renderListPage();
       else if (path === "detail.html") await renderDetailPage();
+      else if (path === "collaboration.html") await renderCollaborationPairPage();
       else if (path === "about.html") await renderAboutPage();
     } catch (e) {
       console.error("页面初始化失败:", e);
