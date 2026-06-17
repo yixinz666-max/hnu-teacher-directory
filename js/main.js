@@ -292,6 +292,98 @@ function getCollabPairKey(a, b) {
   return [a, b].sort().join("::");
 }
 
+const COLLAB_SURNAME_PINYIN = [
+  "ouyang", "sima", "shangguan", "zhuge", "dongfang", "ximen",
+  "chen", "deng", "fang", "feng", "gong", "guo", "huang", "jiang", "kang",
+  "kong", "liang", "liao", "liu", "long", "luo", "meng", "peng", "qi", "qin",
+  "shi", "song", "su", "sun", "tan", "tang", "tian", "wang", "wei", "wen",
+  "wu", "xiang", "xiao", "xie", "xu", "xue", "yang", "yao", "yi", "yin",
+  "yuan", "zhang", "zhao", "zheng", "zhou", "zhu", "zou", "ai", "bi", "bu",
+  "cao", "cui", "du", "fan", "fu", "gao", "he", "hu", "hua", "jia", "jin",
+  "lai", "lan", "le", "lei", "li", "lin", "lv", "ma", "niu", "pan", "rao",
+  "ren", "shen", "sheng", "tao", "wan", "xiong", "yan", "yu"
+].sort(function(a, b) { return b.length - a.length; });
+
+function getTeacherSlug(t) {
+  var page = String(t && t.personal_page || "");
+  var slug = page.split("/").filter(Boolean).pop() || "";
+  return slug.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function splitPinyinSlug(slug) {
+  for (var i = 0; i < COLLAB_SURNAME_PINYIN.length; i++) {
+    var surname = COLLAB_SURNAME_PINYIN[i];
+    if (slug.indexOf(surname) === 0 && slug.length > surname.length) {
+      return { surname: surname, given: slug.slice(surname.length) };
+    }
+  }
+  return null;
+}
+
+function splitGivenPinyin(given) {
+  if (!given) return [];
+  if (given.length <= 4) return [given];
+  var syllables = ["ang", "eng", "ing", "ong", "ai", "an", "ao", "ei", "en", "er", "ia", "ie", "in", "iu", "ou", "ua", "ui", "un", "uo"];
+  for (var i = 0; i < syllables.length; i++) {
+    var idx = given.indexOf(syllables[i]);
+    var cut = idx + syllables[i].length;
+    if (idx >= 0 && cut > 1 && cut < given.length) return [given.slice(0, cut), given.slice(cut)];
+  }
+  var half = Math.ceil(given.length / 2);
+  return [given.slice(0, half), given.slice(half)];
+}
+
+function getTeacherNameAliases(t) {
+  var aliases = new Set();
+  if (t && t.name) aliases.add(t.name);
+  var slug = getTeacherSlug(t);
+  if (slug) aliases.add(slug);
+  var parts = splitPinyinSlug(slug);
+  if (parts) {
+    var givenParts = splitGivenPinyin(parts.given).filter(Boolean);
+    var givenSpaced = givenParts.join(" ");
+    aliases.add(parts.surname + parts.given);
+    aliases.add(parts.given + parts.surname);
+    aliases.add(parts.surname + " " + parts.given);
+    aliases.add(parts.given + " " + parts.surname);
+    if (givenSpaced) {
+      aliases.add(parts.surname + " " + givenSpaced);
+      aliases.add(givenSpaced + " " + parts.surname);
+    }
+  }
+  return Array.from(aliases).filter(function(alias) {
+    var normalized = normalizeCollabText(alias);
+    var asciiOnly = /^[a-z]+$/.test(normalized);
+    return asciiOnly ? normalized.length >= 5 : normalized.length >= 2;
+  });
+}
+
+function collectTeacherPublicationTexts(t) {
+  var items = [];
+  function add(value) {
+    var text = String(value || "").trim();
+    if (text.length >= 12 && /(?:19|20)\d{2}|[,，.;；]/.test(text)) items.push(text);
+  }
+  (t.publications || []).forEach(add);
+  (t.profile_sections || []).forEach(function(section) {
+    var title = String(section && section.title || "");
+    if (/论文|成果|著作|专利|publication|paper|article|journal/i.test(title)) {
+      (section.items || []).forEach(add);
+    }
+  });
+  var inAcademicBlock = false;
+  (t.profile_flow || []).forEach(function(block) {
+    if (!block) return;
+    if (block.type === "heading") {
+      var heading = String(block.text || "");
+      inAcademicBlock = /论文|成果|著作|专利|publication|paper|article|journal/i.test(heading);
+      return;
+    }
+    if (inAcademicBlock && block.text) add(block.text);
+  });
+  return Array.from(new Set(items));
+}
+
 function parseCollabPaper(raw) {
   var text = String(raw || "").replace(/\s+/g, " ").trim();
   var yearMatches = text.match(/(?:19|20)\d{2}/g) || [];
@@ -317,20 +409,19 @@ function parseCollabPaper(raw) {
 }
 
 function getTeacherPaperCount(t) {
-  return (t.publications || []).filter(function(item) {
-    var text = String(item || "").trim();
-    return text.length > 12 && /(?:19|20)\d{2}|[,，]/.test(text);
-  }).length;
+  return collectTeacherPublicationTexts(t).length;
 }
 
 function buildCollaborationData() {
   if (App.collaboration) return App.collaboration;
   var teacherByName = new Map();
-  var normalizedTeachers = [];
+  var aliasIndex = [];
   App.teachers.forEach(function(t) {
     if (!t || !t.name) return;
     teacherByName.set(t.name, t);
-    normalizedTeachers.push({ name: t.name, normalized: normalizeCollabText(t.name), teacher: t });
+    getTeacherNameAliases(t).forEach(function(alias) {
+      aliasIndex.push({ name: t.name, alias: alias, normalized: normalizeCollabText(alias), teacher: t });
+    });
   });
   var nodeMap = new Map();
   var edgeMap = new Map();
@@ -348,11 +439,11 @@ function buildCollaborationData() {
     });
   });
   App.teachers.forEach(function(owner) {
-    (owner.publications || []).forEach(function(raw) {
+    collectTeacherPublicationTexts(owner).forEach(function(raw) {
       var text = String(raw || "").trim();
       if (text.length < 12) return;
       var normalizedPaper = normalizeCollabText(text);
-      var matched = normalizedTeachers.filter(function(item) {
+      var matched = aliasIndex.filter(function(item) {
         return item.normalized.length >= 2 && normalizedPaper.indexOf(item.normalized) >= 0;
       }).map(function(item) { return item.name; });
       matched = Array.from(new Set(matched));
@@ -477,7 +568,7 @@ function renderTeacherCollabInfo(name) {
   var edges = getTeacherCollabEdges(name);
   var total = edges.reduce(function(sum, edge) { return sum + edge.count; }, 0);
   var top = edges.slice(0, 5);
-  var personalPapers = (teacher.publications || []).map(parseCollabPaper).filter(function(paper) {
+  var personalPapers = collectTeacherPublicationTexts(teacher).map(parseCollabPaper).filter(function(paper) {
     return paper && (paper.title || paper.raw);
   }).slice(0, 8);
   info.innerHTML =
@@ -540,11 +631,17 @@ function drawCollabGraph(nodes, edges, centerName) {
       id: node.name,
       name: node.name,
       value: node.cooperationCount || node.paperCount || 1,
-      symbolSize: isCenter ? 64 : Math.max(34, Math.min(56, 30 + (node.cooperationCount || 1) * 3)),
+      symbolSize: isCenter ? 68 : Math.max(34, Math.min(58, 30 + (node.cooperationCount || 1) * 2.5)),
       category: isCenter ? 0 : 1,
       draggable: true,
-      itemStyle: { color: isCenter ? "#0b2b4a" : "#7fb0d6" },
-      label: { color: isCenter ? "#0b2b4a" : "#26475e", fontWeight: isCenter ? 800 : 600 },
+      itemStyle: {
+        color: isCenter ? "#8b1a2b" : "#7fb0d6",
+        borderColor: isCenter ? "#d4a017" : "#ffffff",
+        borderWidth: isCenter ? 4 : 2,
+        shadowBlur: isCenter ? 12 : 0,
+        shadowColor: isCenter ? "rgba(139,26,43,0.28)" : "transparent"
+      },
+      label: { color: isCenter ? "#8b1a2b" : "#26475e", fontWeight: isCenter ? 900 : 600 },
       raw: node
     };
   });
@@ -555,16 +652,26 @@ function drawCollabGraph(nodes, edges, centerName) {
       target: edge.target,
       value: edge.count,
       lineStyle: {
-        width: Math.max(1.5, Math.min(9, 1.2 + edge.count * 1.2)),
-        color: high ? "#123b61" : "#b7c9d8",
-        opacity: high ? 0.88 : 0.58
+        width: Math.max(2, Math.min(11, 1.4 + edge.count * 1.35)),
+        color: high ? "#8b1a2b" : "#9fb8cc",
+        opacity: high ? 0.92 : 0.62
+      },
+      label: {
+        show: true,
+        formatter: edge.count + "次",
+        color: high ? "#8b1a2b" : "#5d7487",
+        fontSize: high ? 12 : 10,
+        fontWeight: high ? 800 : 600,
+        backgroundColor: "rgba(255,255,255,0.82)",
+        borderRadius: 4,
+        padding: [2, 4]
       },
       raw: edge
     };
   });
   App.collabChart.setOption({
     animationDuration: 450,
-    color: ["#0b2b4a", "#7fb0d6"],
+    color: ["#8b1a2b", "#7fb0d6"],
     tooltip: {
       trigger: "item",
       confine: true,
@@ -597,6 +704,7 @@ function drawCollabGraph(nodes, edges, centerName) {
       links: graphLinks,
       categories: [{ name: "中心教师" }, { name: "合作教师" }],
       label: { show: true, position: "right", fontSize: 12 },
+      edgeLabel: { show: true },
       edgeSymbol: ["none", "none"],
       force: { repulsion: centerName ? 360 : 220, edgeLength: centerName ? [90, 150] : [70, 140], gravity: 0.08 },
       emphasis: { focus: "adjacency", lineStyle: { opacity: 1 } }
