@@ -720,7 +720,8 @@ function drawCollabGraph(nodes, edges, centerName) {
       categories: [{ name: "中心教师" }, { name: "合作教师" }],
       label: { show: true, fontSize: 11 },
       edgeLabel: { show: true },
-      edgeSymbol: ["none", "none"],
+      edgeSymbol: ["none", "arrow"],
+      edgeSymbolSize: [0, 8],
       labelLayout: { hideOverlap: true },
       force: { repulsion: centerName ? 520 : 360, edgeLength: centerName ? [120, 210] : [110, 190], gravity: 0.045, friction: 0.58 },
       emphasis: { focus: "adjacency", lineStyle: { opacity: 1 } }
@@ -753,6 +754,14 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
   }
   if (App.collabChart) App.collabChart.dispose();
   App.collabChart = echarts.init(el);
+  var bubbleFont = '"Inter", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif';
+  var bubblePalette = ["#c9c8ff", "#ffd2d2", "#ffe9bd", "#bfe9e7", "#cfe7ff", "#e2dcff"];
+  function hashColor(name) {
+    var hash = 0;
+    var text = String(name || "");
+    for (var i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+    return bubblePalette[hash % bubblePalette.length];
+  }
 
   var nodeMaxValue = Math.max.apply(null, nodes.map(function(node) {
     return Math.max(1, node.paperCount || 0);
@@ -771,11 +780,11 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
       category: isCenter ? 0 : 1,
       draggable: true,
       itemStyle: {
-        color: isCenter ? "#3d7185" : "#8fb8c7",
+        color: isCenter ? "#6d7781" : hashColor(node.department || node.name),
         borderColor: "#ffffff",
-        borderWidth: 2,
-        shadowBlur: isCenter ? 12 : 8,
-        shadowColor: "rgba(18,59,97,0.18)"
+        borderWidth: 1.5,
+        shadowBlur: isCenter ? 14 : 7,
+        shadowColor: isCenter ? "rgba(84,95,105,0.22)" : "rgba(18,59,97,0.12)"
       },
       label: {
         show: true,
@@ -786,7 +795,8 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
           count = (raw.paperCount || 0) + "篇";
           return raw.name + "\n" + count;
         },
-        color: "#ffffff",
+        color: isCenter ? "#ffffff" : "#39434d",
+        fontFamily: bubbleFont,
         fontWeight: 700,
         fontSize: size >= 72 ? 12 : 10,
         lineHeight: size >= 72 ? 17 : 14,
@@ -796,15 +806,22 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
       raw: node
     };
   });
+  var paperCountByName = new Map(nodes.map(function(node) { return [node.name, node.paperCount || 0]; }));
   var graphLinks = edges.map(function(edge) {
+    var source = edge.source;
+    var target = edge.target;
+    if ((paperCountByName.get(source) || 0) < (paperCountByName.get(target) || 0)) {
+      source = edge.target;
+      target = edge.source;
+    }
     return {
-      source: edge.source,
-      target: edge.target,
+      source: source,
+      target: target,
       value: edge.count,
       lineStyle: {
-        width: Math.max(0.8, Math.min(2.4, 0.55 + Math.sqrt(edge.count) * 0.26)),
-        color: "#244758",
-        opacity: 0.68,
+        width: Math.max(0.7, Math.min(1.8, 0.5 + Math.sqrt(edge.count) * 0.18)),
+        color: "#313943",
+        opacity: 0.72,
         curveness: 0
       },
       raw: edge
@@ -813,7 +830,7 @@ function drawCollabBubbleGraph(nodes, edges, centerName) {
 
   App.collabChart.setOption({
     animationDuration: 450,
-    color: ["#3d7185", "#8fb8c7"],
+    color: ["#6d7781"].concat(bubblePalette),
     tooltip: {
       trigger: "item",
       confine: true,

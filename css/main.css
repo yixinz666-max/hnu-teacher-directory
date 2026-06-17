@@ -1513,6 +1513,7 @@ body {
   overflow: hidden;
   position: relative;
   background: #ffffff;
+  font-family: "Inter", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
 }
 
 .collab-graph-card::before,
@@ -1584,11 +1585,11 @@ body {
 }
 
 .legend-center {
-  background: linear-gradient(90deg, #8b1a2b, #d4a017);
+  background: #6d7781;
 }
 
 .legend-link {
-  background: #8b1a2b;
+  background: linear-gradient(90deg, #c9c8ff, #ffd2d2, #ffe9bd);
 }
 
 .collab-reset-btn {
