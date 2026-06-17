@@ -838,6 +838,31 @@ body {
   color: var(--accent);
 }
 
+.scholar-empty {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-white);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(18,59,97,0.06);
+}
+
+.scholar-empty h2 {
+  margin-bottom: 10px;
+  color: var(--primary-dark);
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
 .stats-grid {
   gap: 12px;
   margin-top: -42px;

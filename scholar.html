@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学者主页跳转 - 湖南大学土木工程学院教师信息库</title>
+  <link rel="stylesheet" href="css/main.css?v=2026061703">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-brand"><span class="icon icon-sm brand-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4 21V9l8-6 8 6v12"/><path d="M9 15v4h6v-4"/><rect x="10" y="11" width="4" height="4" rx="0.5"/></svg></span> 湖南大学土木工程学院教师信息库</a>
+    <div class="navbar-menu">
+      <a href="index.html">首页</a>
+      <a href="list.html">教师名录</a>
+      <a href="index.html#outstanding">杰出学者</a>
+      <a href="about.html">数据说明</a>
+    </div>
+  </div>
+</nav>
+
+<main class="section">
+  <div class="container">
+    <div class="empty-state scholar-empty" id="scholar-status">
+      <p>正在查找学者主页...</p>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="index.html">首页</a>
+    <a href="list.html">教师名录</a>
+    <a href="index.html#outstanding">杰出学者</a>
+    <a href="about.html">数据说明</a>
+  </div>
+  <p>© 2026 湖南大学土木工程学院教师信息库 · 仅供学术检索参考</p>
+</footer>
+
+<script src="data/teachers.js?v=2026061703"></script>
+<script>
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var name = (params.get("name") || "").trim();
+  var status = document.getElementById("scholar-status");
+
+  function showNoData(label) {
+    var safeName = label || "该学者";
+    status.innerHTML =
+      '<h2>暂无主页资料</h2>' +
+      '<p>' + safeName + ' 暂未收录可跳转的个人主页。</p>' +
+      '<div class="empty-actions">' +
+      '<a class="btn btn-primary" href="list.html?search=' + encodeURIComponent(safeName) + '">在教师名录中检索</a>' +
+      '<a class="btn btn-outline" href="index.html#outstanding">返回杰出学者</a>' +
+      '</div>';
+  }
+
+  if (!name) {
+    showNoData("");
+    return;
+  }
+
+  var data = window.__TEACHERS_DATA__ || {};
+  var teachers = data.teachers || [];
+  var teacher = teachers.find(function(item) {
+    return item && item.name === name;
+  });
+
+  if (teacher && teacher.personal_page && /^https?:\/\//.test(teacher.personal_page)) {
+    window.location.replace(teacher.personal_page);
+    return;
+  }
+
+  showNoData(name);
+})();
+</script>
+</body>
+</html>
