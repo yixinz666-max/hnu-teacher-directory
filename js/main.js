@@ -556,6 +556,22 @@ function renderPaperSearchLinks(paper) {
   return " " + links.join(" ");
 }
 
+function isLikelyPaperText(text) {
+  var value = String(text || "").trim();
+  if (value.length < 12) return false;
+  if (/^(基本信息|教育背景|工作履历|学术兼职|研究领域|科研项目|奖励|招生|分类浏览|帮助中心)$/i.test(value)) return false;
+  if (/代表性|更新|通讯作者|本人指导|主要论文|论文目录|成果列表/.test(value) && value.length < 120) return false;
+  return /(?:19|20)\d{2}|doi\.org|10\.\d{4,9}\/|\[J\]|\[C\]/i.test(value) &&
+    /[,，.;；:：]/.test(value);
+}
+
+function renderPaperTextWithLinks(text) {
+  var raw = String(text || "");
+  if (!isLikelyPaperText(raw)) return escapeHTML(raw);
+  var paper = parseCollabPaper(raw);
+  return escapeHTML(raw) + renderPaperSearchLinks(paper);
+}
+
 function renderCollabPaperList(papers, heading) {
   var box = document.getElementById("collab-paper-list");
   if (!box) return;
@@ -1424,12 +1440,18 @@ function renderProfileContent(t, tags) {
 }
 
 function renderProfileFlow(flow) {
+  var inAcademicBlock = false;
   return '<div class="detail-section official-flow-section"><div class="official-flow">' +
-    flow.map(renderFlowBlock).join("") +
+    flow.map(function(block) {
+      if (block && block.type === "heading") {
+        inAcademicBlock = /论文|成果|著作|专利|publication|paper|article|journal/i.test(block.text || "");
+      }
+      return renderFlowBlock(block, inAcademicBlock);
+    }).join("") +
     '</div></div>';
 }
 
-function renderFlowBlock(block) {
+function renderFlowBlock(block, withPaperLinks) {
   if (!block) return "";
   const type = block.type || "text";
   if (type === "heading") {
@@ -1453,7 +1475,8 @@ function renderFlowBlock(block) {
     return rows ? '<div class="flow-table">' + rows + '</div>' : "";
   }
   const text = escapeHTML(block.text || "").replace(/\n/g, "<br>");
-  return text ? '<p class="flow-text">' + text + '</p>' : "";
+  var linkedText = (withPaperLinks ? renderPaperTextWithLinks(block.text || "") : escapeHTML(block.text || "")).replace(/\n/g, "<br>");
+  return text ? '<p class="flow-text">' + linkedText + '</p>' : "";
 }
 
 function renderDetailSections(t, tags) {
@@ -1471,7 +1494,7 @@ function renderDetailSections(t, tags) {
     (t.academic_roles && t.academic_roles.length ? renderSection("学术兼职", renderList(t.academic_roles)) : "") +
     (t.research_interests && t.research_interests.length ? renderSection("研究领域", '<p style="color:var(--text-secondary);">' + tags + '</p>') : "") +
     (t.research_projects && t.research_projects.length ? renderSection("科研项目", renderList(t.research_projects)) : "") +
-    (t.publications && t.publications.length ? renderSection("学术成果", renderList(t.publications)) : "") +
+    (t.publications && t.publications.length ? renderSection("学术成果", renderList(t.publications, true)) : "") +
     (t.awards && t.awards.length ? renderSection("奖励与荣誉", renderList(t.awards)) : "") +
     (t.enrollment ? renderSection("招生信息", '<p style="color:var(--text-secondary);">' + escapeHTML(t.enrollment) + '</p>') : "");
 }
@@ -1479,12 +1502,16 @@ function renderDetailSections(t, tags) {
 function renderSourceSection(section) {
   if (!section || !section.items || !section.items.length) return "";
   const title = escapeHTML(section.title || "其他信息");
-  return renderSection(title, renderList(section.items), "source-profile-section");
+  var isAcademic = /论文|成果|著作|publication|paper|article|journal/i.test(section.title || "");
+  return renderSection(title, renderList(section.items, isAcademic), "source-profile-section");
 }
 
-function renderList(items) {
+function renderList(items, withPaperLinks) {
   const cleanItems = (items || []).filter(Boolean);
-  return '<ul class="detail-list">' + cleanItems.map(i => '<li>' + escapeHTML(String(i)) + '</li>').join("") + '</ul>';
+  return '<ul class="detail-list">' + cleanItems.map(function(i) {
+    var text = String(i);
+    return '<li>' + (withPaperLinks ? renderPaperTextWithLinks(text) : escapeHTML(text)) + '</li>';
+  }).join("") + '</ul>';
 }
 
 function renderProfileAssets(t) {
