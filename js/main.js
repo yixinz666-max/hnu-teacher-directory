@@ -675,7 +675,7 @@ function renderCollabOverview() {
   var activeTeacherCount = data.nodes.filter(function(node) { return node.collaboratorCount > 0; }).length;
   var totalCount = data.edges.reduce(function(sum, edge) { return sum + edge.count; }, 0);
   var highFreqCount = data.edges.filter(function(edge) { return edge.count >= 2; }).length;
-  var topEdges = data.edges.slice(0, 5);
+  var topEdges = data.edges.slice(0, 10);
   info.innerHTML =
     '<div class="collab-metrics">' +
     '<div class="collab-metric"><strong>' + activeTeacherCount + '</strong><span>参与论文合作的教师数量</span></div>' +
@@ -683,13 +683,22 @@ function renderCollabOverview() {
     '<div class="collab-metric"><strong>' + totalCount + '</strong><span>论文合作总次数</span></div>' +
     '<div class="collab-metric"><strong>' + highFreqCount + '</strong><span>高频合作组合数量</span></div>' +
     '</div>' +
-    '<div class="collab-block"><h3>高频合作 Top 5</h3><div class="collab-pair-list">' +
+    '<div class="collab-block collab-top-block"><div class="collab-block-header"><h3>高频合作 Top 10</h3><button type="button" class="collab-toggle-btn" id="collab-top-toggle">查看 Top 10 名单</button></div><div class="collab-pair-list" id="collab-top-list" hidden>' +
     topEdges.map(function(edge) {
       return '<article class="collab-pair" data-source="' + escapeHTML(edge.source) + '" data-target="' + escapeHTML(edge.target) + '">' +
         '<div class="collab-pair-title"><span><a class="teacher-inline-link" href="' + collaborationPairUrl(edge.source, edge.target) + '">' + escapeHTML(edge.source) + '</a> - <a class="teacher-inline-link" href="' + collaborationPairUrl(edge.source, edge.target) + '">' + escapeHTML(edge.target) + '</a></span><span class="collab-count-badge">合作 ' + edge.count + ' 次</span></div>' +
         (getRecentPaperTitle(edge) ? '<div class="collab-paper-title">' + escapeHTML(getRecentPaperTitle(edge)) + '</div>' : '') +
         '</article>';
     }).join("") + '</div></div>';
+  var topToggle = document.getElementById("collab-top-toggle");
+  var topList = document.getElementById("collab-top-list");
+  if (topToggle && topList) {
+    topToggle.addEventListener("click", function() {
+      var willShow = topList.hidden;
+      topList.hidden = !willShow;
+      topToggle.textContent = willShow ? "收起 Top 10 名单" : "查看 Top 10 名单";
+    });
+  }
   info.querySelectorAll(".collab-pair").forEach(function(item) {
     item.addEventListener("click", function() {
       var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
