@@ -8,6 +8,7 @@ const App = {
 };
 
 const SITE_RETURN_KEY = "hnuTeacherReturnState";
+const COLLAB_SEARCH_HISTORY_KEY = "hnuCollabSearchHistory";
 
 
 
@@ -85,6 +86,25 @@ function readReturnState() {
   } catch (e) {
     return null;
   }
+}
+
+function readCollabSearchHistory() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(COLLAB_SEARCH_HISTORY_KEY) || "[]");
+    return Array.isArray(saved) ? saved.filter(Boolean).slice(0, 8) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCollabSearchHistory(name) {
+  var value = String(name || "").trim();
+  if (!value) return;
+  try {
+    var history = readCollabSearchHistory().filter(function(item) { return item !== value; });
+    history.unshift(value);
+    localStorage.setItem(COLLAB_SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, 8)));
+  } catch (e) {}
 }
 
 function goBackOrFallback(fallback) {
@@ -1150,6 +1170,7 @@ function showTeacherCollaboration(name) {
   var node = data.nodeMap.get(name);
   if (!node) return;
   rememberReturnState({ type: "collaboration", teacher: name });
+  saveCollabSearchHistory(name);
   var input = document.getElementById("collab-search");
   if (input) input.value = name;
   var edges = getTeacherCollabEdges(name);
@@ -1167,9 +1188,29 @@ function attachCollabSearch() {
   if (!input || !box || input.dataset.ready === "1") return;
   input.dataset.ready = "1";
   var data = buildCollaborationData();
+  function bindSuggestionClicks() {
+    box.querySelectorAll(".collab-suggestion").forEach(function(btn) {
+      btn.addEventListener("mousedown", function(e) {
+        e.preventDefault();
+        box.classList.remove("show");
+        showTeacherCollaboration(this.dataset.name);
+      });
+    });
+  }
+  function renderHistory() {
+    var history = readCollabSearchHistory().filter(function(name) { return data.nodeMap.has(name); });
+    if (!history.length) { box.classList.remove("show"); return; }
+    box.innerHTML = '<div class="collab-suggestion-title">最近搜索</div>' + history.map(function(name) {
+      var node = data.nodeMap.get(name) || {};
+      return '<button type="button" class="collab-suggestion collab-history-item" data-name="' + escapeHTML(name) + '">' +
+        '<span>' + escapeHTML(name) + '</span><small>' + escapeHTML(node.department || "历史记录") + '</small></button>';
+    }).join("");
+    box.classList.add("show");
+    bindSuggestionClicks();
+  }
   function renderSuggestions() {
     var q = input.value.trim();
-    if (!q) { box.classList.remove("show"); return; }
+    if (!q) { renderHistory(); return; }
     var normalized = normalizeCollabText(q);
     var matches = data.nodes.filter(function(node) {
       return normalizeCollabText(node.name).indexOf(normalized) >= 0;
@@ -1182,13 +1223,7 @@ function attachCollabSearch() {
         '<span>' + escapeHTML(node.name) + '</span><small>' + escapeHTML(node.department || "") + '</small></button>';
     }).join("");
     box.classList.add("show");
-    box.querySelectorAll(".collab-suggestion").forEach(function(btn) {
-      btn.addEventListener("mousedown", function(e) {
-        e.preventDefault();
-        box.classList.remove("show");
-        showTeacherCollaboration(this.dataset.name);
-      });
-    });
+    bindSuggestionClicks();
   }
   input.addEventListener("input", debounce(renderSuggestions, 120));
   input.addEventListener("compositionend", renderSuggestions);
@@ -1204,6 +1239,7 @@ function attachCollabSearch() {
     }
     if (e.key === "Escape") box.classList.remove("show");
   });
+  input.addEventListener("focus", renderSuggestions);
   input.addEventListener("blur", function() {
     setTimeout(function() { box.classList.remove("show"); }, 180);
   });
