@@ -759,9 +759,6 @@ function renderTeacherCollabInfo(name) {
   var total = edges.reduce(function(sum, edge) { return sum + edge.count; }, 0);
   var top = edges.slice(0, 5);
   var pathRecommendations = getAcademicPathRecommendations(name);
-  var personalPapers = collectTeacherPublicationTexts(teacher).map(parseCollabPaper).filter(function(paper) {
-    return paper && (paper.title || paper.raw);
-  }).slice(0, 8);
   info.innerHTML =
     '<div class="collab-teacher-head"><h3>' + renderTeacherNameLink(name, "teacher-heading-link") + '</h3>' +
     '<p>' + escapeHTML(node.title || "职称暂缺") + ' / ' + escapeHTML(node.department || "系所暂缺") + '</p>' +
@@ -796,15 +793,19 @@ function renderTeacherCollabInfo(name) {
       var edge = data.edgeMap.get(getCollabPairKey(this.dataset.source, this.dataset.target));
       if (!edge) return;
       var other = this.dataset.other;
+      if (e.target && e.target.dataset && e.target.dataset.action === "papers") {
+        window.location.href = collaborationPairUrl(name, other);
+        return;
+      }
       if (e.target && e.target.dataset && e.target.dataset.action === "evidence") {
         var evidence = this.querySelector(".academic-path-evidence");
         if (evidence) evidence.hidden = !evidence.hidden;
+        return;
       }
       showCollaborationPath(name, other, edge);
     });
   });
-  if (!edges.length) renderCollabPaperList(personalPapers, name + " 个人论文");
-  else renderCollabPaperList(edges[0].papers, edges[0].source + " - " + edges[0].target + " 合作论文");
+  renderCollabPaperList([], "");
 }
 
 function showCollaborationPath(centerName, otherName, edge) {
@@ -815,7 +816,7 @@ function showCollaborationPath(centerName, otherName, edge) {
   var nodes = Array.from(names).map(function(item) { return data.nodeMap.get(item); }).filter(Boolean);
   setCollabGraphHeader(centerName + " 与 " + otherName + " 的合作关系", "共同论文 " + ((edge.papers || []).length) + " 篇，合作次数 " + edge.count + " 次");
   drawCollabBubbleGraph(nodes, edges, centerName, getCollabPairKey(centerName, otherName));
-  renderCollabPaperList(edge.papers || [], centerName + " - " + otherName + " 共同论文依据");
+  renderCollabPaperList([], "");
 }
 
 function setCollabGraphHeader(title, subtitle) {
