@@ -1397,8 +1397,8 @@ body {
 }
 
 .collab-top-block {
-  margin-top: auto;
-  padding-top: 10px;
+  margin-top: 2px;
+  padding-top: 2px;
   border-top: 1px solid rgba(18,59,97,0.08);
 }
 
@@ -1413,7 +1413,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .collab-block-header h3 {
@@ -1455,6 +1455,10 @@ body {
 
 .collab-pair-list[hidden] {
   display: none !important;
+}
+
+.collab-pair-list-extra {
+  margin-top: 9px;
 }
 
 .collab-pair,
