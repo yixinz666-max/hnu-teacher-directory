@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>学者资料跳转 - 湖南大学土木工程学院教师信息库</title>
-  <link rel="stylesheet" href="css/main.css?v=2026061703">
+  <link rel="stylesheet" href="css/main.css?v=2026070103">
 </head>
 <body>
 
@@ -38,7 +38,7 @@
   <p>© 2026 湖南大学土木工程学院教师信息库 · 仅供学术检索参考</p>
 </footer>
 
-<script src="data/teachers.js?v=2026061703"></script>
+<script src="data/teachers.js?v=2026070103"></script>
 <script>
 (function() {
   var params = new URLSearchParams(window.location.search);
@@ -52,8 +52,15 @@
       '<p>' + safeName + ' 暂未收录站内资料。</p>' +
       '<div class="empty-actions">' +
       '<a class="btn btn-primary" href="list.html?search=' + encodeURIComponent(safeName) + '">在教师名录中检索</a>' +
-      '<a class="btn btn-outline" href="index.html#outstanding">返回杰出学者</a>' +
+      '<button type="button" class="btn btn-outline" id="scholar-back">返回上一页</button>' +
       '</div>';
+    var back = document.getElementById("scholar-back");
+    if (back) {
+      back.addEventListener("click", function() {
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = "index.html#outstanding";
+      });
+    }
   }
 
   if (!name) {

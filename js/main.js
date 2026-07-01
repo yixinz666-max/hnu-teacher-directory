@@ -7,6 +7,8 @@ const App = {
   filters: { departments: [], titles: [], research: [], search: "" },
 };
 
+const SITE_RETURN_KEY = "hnuTeacherReturnState";
+
 
 
 const DEPT_ORDER = ["建筑工程系", "桥梁工程系", "水工程与科学系", "建筑环境与能源应用工程系", "岩土与地下工程系", "建造管理与防灾工程系", "道路与交通工程系", "智能建造系", "建筑材料研究中心", "土木工程学院"];
@@ -61,6 +63,38 @@ function teacherDetailUrlByName(name) {
   return "scholar.html?name=" + encodeURIComponent(name || "");
 }
 
+function getCurrentRelativeUrl() {
+  return window.location.pathname.split("/").pop() + window.location.search + window.location.hash;
+}
+
+function isBackForwardNavigation() {
+  var entries = performance.getEntriesByType && performance.getEntriesByType("navigation");
+  return entries && entries[0] && entries[0].type === "back_forward";
+}
+
+function rememberReturnState(extra) {
+  try {
+    var state = Object.assign({ url: getCurrentRelativeUrl(), savedAt: Date.now() }, extra || {});
+    sessionStorage.setItem(SITE_RETURN_KEY, JSON.stringify(state));
+  } catch (e) {}
+}
+
+function readReturnState() {
+  try {
+    return JSON.parse(sessionStorage.getItem(SITE_RETURN_KEY) || "null");
+  } catch (e) {
+    return null;
+  }
+}
+
+function goBackOrFallback(fallback) {
+  if (window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+  window.location.href = fallback || "index.html";
+}
+
 function collaborationPairUrl(source, target) {
   return "collaboration.html?source=" + encodeURIComponent(source || "") + "&target=" + encodeURIComponent(target || "");
 }
@@ -70,7 +104,7 @@ function collaborationNetworkUrl(name) {
 }
 
 function renderTeacherNameLink(name, className) {
-  return '<a href="' + teacherDetailUrlByName(name) + '"' + (className ? ' class="' + className + '"' : '') + '>' + escapeHTML(name) + '</a>';
+  return '<a href="' + teacherDetailUrlByName(name) + '" data-preserve-return="1"' + (className ? ' class="' + className + '"' : '') + '>' + escapeHTML(name) + '</a>';
 }
 
 async function loadData() {
@@ -184,6 +218,7 @@ function attachHomeSuggestions(searchInput) {
     box.querySelectorAll(".suggestion-item").forEach(function(item) {
       item.addEventListener("mousedown", function(e) {
         e.preventDefault();
+        rememberReturnState({ type: "page" });
         window.location.href = "detail.html?id=" + encodeURIComponent(this.getAttribute("data-id"));
       });
     });
@@ -911,7 +946,10 @@ function drawCollabGraph(nodes, edges, centerName) {
   App.collabChart.on("click", function(params) {
     if (params.dataType === "node" && params.data && params.data.name) {
       if (centerName && params.data.name !== centerName) window.location.href = collaborationPairUrl(centerName, params.data.name);
-      else window.location.href = teacherDetailUrlByName(params.data.name);
+      else {
+        rememberReturnState({ type: "collaboration", teacher: params.data.name });
+        window.location.href = teacherDetailUrlByName(params.data.name);
+      }
     }
     if (params.dataType === "edge" && params.data && params.data.raw) {
       var edge = params.data.raw;
@@ -1080,7 +1118,10 @@ function drawCollabBubbleGraph(nodes, edges, centerName, highlightedPairKey) {
   App.collabChart.on("click", function(params) {
     if (params.dataType === "node" && params.data && params.data.name) {
       if (centerName && params.data.name !== centerName) window.location.href = collaborationPairUrl(centerName, params.data.name);
-      else window.location.href = teacherDetailUrlByName(params.data.name);
+      else {
+        rememberReturnState({ type: "collaboration", teacher: params.data.name });
+        window.location.href = teacherDetailUrlByName(params.data.name);
+      }
     }
     if (params.dataType === "edge" && params.data && params.data.raw) {
       var edge = params.data.raw;
@@ -1107,6 +1148,7 @@ function showTeacherCollaboration(name) {
   var data = buildCollaborationData();
   var node = data.nodeMap.get(name);
   if (!node) return;
+  rememberReturnState({ type: "collaboration", teacher: name });
   var input = document.getElementById("collab-search");
   if (input) input.value = name;
   var edges = getTeacherCollabEdges(name);
@@ -1172,7 +1214,9 @@ function renderCollaborationNetwork() {
   renderCollabOverview();
   renderDefaultCollabGraph();
   attachCollabSearch();
-  var focusTeacher = (getQueryParam("collabTeacher") || "").trim();
+  var savedState = readReturnState();
+  var shouldRestoreSaved = !getQueryParam("collabTeacher") && isBackForwardNavigation() && savedState && savedState.type === "collaboration" && savedState.teacher;
+  var focusTeacher = (getQueryParam("collabTeacher") || (shouldRestoreSaved ? savedState.teacher : "") || "").trim();
   if (focusTeacher) showTeacherCollaboration(focusTeacher);
   var reset = document.getElementById("collab-reset");
   if (reset && reset.dataset.ready !== "1") {
@@ -1180,6 +1224,7 @@ function renderCollaborationNetwork() {
     reset.addEventListener("click", function() {
       var input = document.getElementById("collab-search");
       if (input) input.value = "";
+      rememberReturnState({ type: "collaboration", teacher: "" });
       renderCollabOverview();
       renderDefaultCollabGraph();
     });
@@ -1251,7 +1296,7 @@ async function renderListPage() {
     box.classList.add("show");
     box.querySelectorAll(".suggestion-item").forEach(function(item) {
       item.removeEventListener("mousedown", item._sugHandler);
-      item._sugHandler = function(e) { e.preventDefault(); window.location.href = "detail.html?id=" + encodeURIComponent(this.getAttribute("data-id")); };
+      item._sugHandler = function(e) { e.preventDefault(); rememberReturnState({ type: "page" }); window.location.href = "detail.html?id=" + encodeURIComponent(this.getAttribute("data-id")); };
       item.addEventListener("mousedown", item._sugHandler);
     });
   }
@@ -1388,7 +1433,7 @@ async function renderDetailPage() {
   const id = getQueryParam("id");
   if (!id) { window.location.href = "list.html"; return; }
   const t = App.teachers.find(t => t.id === id);
-  if (!t) { document.getElementById("app").innerHTML = '<div class="empty-state"><p>未找到该教师信息</p><a href="list.html" class="btn btn-primary">返回</a></div>'; return; }
+  if (!t) { document.getElementById("app").innerHTML = '<div class="empty-state"><p>未找到该教师信息</p><button type="button" class="btn btn-primary site-back-link" data-fallback="list.html">返回上一页</button></div>'; return; }
   renderDetail(t);
 }
 
@@ -1398,7 +1443,7 @@ function renderDetail(t) {
   const tags = (t.research_interests || []).map(i => '<span class="tag tag-primary">' + i + '</span>').join(" ");
 
   app.innerHTML =
-    '<div class="breadcrumb container"><a href="index.html">首页</a> / <a href="list.html">教师名录</a> / <span>' + t.name + '</span></div>' +
+    '<div class="breadcrumb container"><button type="button" class="breadcrumb-back site-back-link" data-fallback="list.html">返回上一页</button> / <a href="index.html">首页</a> / <a href="list.html">教师名录</a> / <span>' + t.name + '</span></div>' +
     '<div class="detail-hero"><div class="profile-card">' +
     '<div class="profile-avatar">' + getTeacherAvatar(t, 120) + '</div>' +
     '<div class="profile-info">' +
@@ -1574,7 +1619,7 @@ async function renderCollaborationPairPage() {
   var source = (getQueryParam("source") || "").trim();
   var target = (getQueryParam("target") || "").trim();
   if (!source || !target) {
-    app.innerHTML = '<div class="empty-state"><p>请选择两位教师查看合作论文。</p><a class="btn btn-primary" href="index.html#collaboration">返回学术合作网络</a></div>';
+    app.innerHTML = '<div class="empty-state"><p>请选择两位教师查看合作论文。</p><button type="button" class="btn btn-primary site-back-link" data-fallback="index.html#collaboration">返回上一页</button></div>';
     return;
   }
   var data = buildCollaborationData();
@@ -1591,15 +1636,37 @@ async function renderCollaborationPairPage() {
     '<div class="pair-teacher"><h2>' + renderTeacherNameLink(target, "teacher-heading-link") + '</h2><p>' + escapeHTML((targetNode && targetNode.title) || "职称暂缺") + ' / ' + escapeHTML((targetNode && targetNode.department) || "系所暂缺") + '</p></div>' +
     '</div>' +
     (papers.length ? '<div class="pair-paper-list">' + papers.map(renderCollaborationPaperCard).join("") + '</div>' : '<div class="empty-state"><p>暂未发现这两位教师的共同署名论文。</p></div>') +
-    '<div class="pair-actions"><a class="btn btn-primary" href="' + collaborationNetworkUrl(source) + '">返回' + escapeHTML(source) + '的合作网络</a><a class="btn btn-outline" href="list.html">浏览教师名录</a></div>' +
+    '<div class="pair-actions"><button type="button" class="btn btn-primary site-back-link" data-fallback="' + collaborationNetworkUrl(source) + '">返回上一页</button><a class="btn btn-outline" href="list.html">浏览教师名录</a></div>' +
     '</div></div>';
 }
 
 async function renderAboutPage() { await loadData(); }
 
+function initReturnNavigation() {
+  document.addEventListener("click", function(e) {
+    var backControl = e.target.closest && e.target.closest(".site-back-link");
+    if (backControl) {
+      e.preventDefault();
+      goBackOrFallback(backControl.getAttribute("data-fallback") || "index.html");
+      return;
+    }
+    var detailLink = e.target.closest && e.target.closest('a[data-preserve-return="1"], a[href^="detail.html"], a[href^="scholar.html"]');
+    if (detailLink) {
+      var collabInput = document.getElementById("collab-search");
+      var collabSection = document.getElementById("collaboration");
+      if (collabInput && collabSection) {
+        rememberReturnState({ type: "collaboration", teacher: collabInput.value.trim() });
+      } else {
+        rememberReturnState({ type: "page" });
+      }
+    }
+  });
+}
+
 // ===== 入口 =====
 document.addEventListener("DOMContentLoaded", () => {
   initNavbar();
+  initReturnNavigation();
   const path = window.location.pathname.split("/").pop() || "index.html";
   const handler = (async () => {
     try {

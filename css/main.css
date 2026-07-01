@@ -460,6 +460,17 @@ ul, ol { list-style: none; }
 .breadcrumb a { color: var(--text-muted); }
 .breadcrumb a:hover { color: var(--primary); }
 .breadcrumb span { color: var(--text-secondary); }
+.breadcrumb-back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+}
+.breadcrumb-back:hover { color: var(--primary-dark); }
 
 /* ===== 手机端筛选抽屉 ===== */
 .filter-drawer-overlay {
